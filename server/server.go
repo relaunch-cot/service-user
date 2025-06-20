@@ -21,6 +21,15 @@ func (r *userResource) CreateUser(ctx context.Context, in *pbUser.CreateUserRequ
 	return &empty.Empty{}, nil
 }
 
+func (r *userResource) LoginUser(ctx context.Context, in *pbUser.LoginUserRequest) (*pbUser.LoginUserResponse, error) {
+	loginUserResponse, err := r.handler.User.LoginUser(&ctx, in.Email, in.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	return &loginUserResponse, nil
+}
+
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,
