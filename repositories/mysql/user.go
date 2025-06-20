@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/lib-relaunch-cot/repositories/mysql"
@@ -43,6 +44,10 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 		return pb.LoginUserResponse{}, err
 	}
 	defer rows.Close()
+
+	if !rows.Next() {
+		return pb.LoginUserResponse{}, errors.New("user not found")
+	}
 
 	tokenString, err := createToken(email)
 	if err != nil {
