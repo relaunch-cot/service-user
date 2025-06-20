@@ -3,11 +3,13 @@ package handler
 import (
 	"context"
 	"github.com/relaunch-cot/bff/grpc"
+	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/service-user/repositories"
 )
 
 type IUserHandler interface {
 	CreateUser(ctx *context.Context, name, email, password string) error
+	LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error)
 }
 
 type resource struct {
@@ -22,6 +24,15 @@ func (r *resource) CreateUser(ctx *context.Context, name, email, password string
 	}
 
 	return nil
+}
+
+func (r *resource) LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error) {
+	loginUserResponse, err := r.repositories.Mysql.LoginUser(ctx, email, password)
+	if err != nil {
+		return pb.LoginUserResponse{}, err
+	}
+
+	return loginUserResponse, nil
 }
 
 func NewUserHandler(repositories *repositories.Repositories) IUserHandler {
