@@ -10,6 +10,7 @@ import (
 type IUserHandler interface {
 	CreateUser(ctx *context.Context, name, email, password string) error
 	LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error)
+	UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPasswordRequest) (*pb.UpdateUserPasswordResponse, error)
 }
 
 type resource struct {
@@ -33,6 +34,15 @@ func (r *resource) LoginUser(ctx *context.Context, email, password string) (pb.L
 	}
 
 	return loginUserResponse, nil
+}
+
+func (r *resource) UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPasswordRequest) (*pb.UpdateUserPasswordResponse, error) {
+	updateUserPasswordResponse, err := r.repositories.Mysql.UpdateUserPassword(ctx, in.Email, in.CurrentPassword, in.NewPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	return updateUserPasswordResponse, nil
 }
 
 func NewUserHandler(repositories *repositories.Repositories) IUserHandler {
