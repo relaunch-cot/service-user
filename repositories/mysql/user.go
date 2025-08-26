@@ -18,6 +18,7 @@ type mysqlResource struct {
 type IMySqlUser interface {
 	CreateUser(ctx *context.Context, name, email, password string) error
 	LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error)
+	UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) (*pb.UpdateUserPasswordResponse, error)
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
@@ -78,6 +79,54 @@ func createToken(userEmail string) (string, error) {
 	tokenString = fmt.Sprintf(`Bearer: %s`, tokenString)
 
 	return tokenString, nil
+}
+
+func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) (*pb.UpdateUserPasswordResponse, error) {
+	queryValidateUser := fmt.Sprintf(`SELECT * FROM user WHERE email = '%s'`, email)
+	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, errors.New("user not found")
+	}
+
+	queryValidatePassword := fmt.Sprintf(`SELECT * FROM user WHERE email = '%s' AND password = '%s' LIMIT 1`, email, currentPassword)
+	rows, err = mysql.DB.QueryContext(*ctx, queryValidatePassword)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, errors.New("wrong password")
+	}
+
+	updateQuery := fmt.Sprintf(`UPDATE user SET password = '%s' WHERE email = '%s'`, newPassword, email)
+	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	selectQuery := fmt.Sprintf(`SELECT password FROM user WHERE email = '%s'`, email)
+	row := mysql.DB.QueryRowContext(*ctx, selectQuery)
+
+	var updatedPassword string
+	err = row.Scan(&updatedPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	updateUserPasswordResponse := pb.UpdateUserPasswordResponse{
+		Email:    email,
+		Password: updatedPassword,
+	}
+
+	return &updateUserPasswordResponse, nil
 }
 
 func NewMysqlRepository(client *mysql.Client) IMySqlUser {
