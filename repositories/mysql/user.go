@@ -30,7 +30,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password s
 	}
 
 	basequery := fmt.Sprintf(
-		"INSERT INTO user (name, email, password) VALUES('%s', '%s', '%s')",
+		"INSERT INTO users (name, email, password) VALUES('%s', '%s', '%s')",
 		name,
 		email,
 		hashPassword,
@@ -48,7 +48,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password s
 func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error) {
 	var User user.User
 
-	basequery := fmt.Sprintf(`SELECT * FROM user WHERE email = '%s'`, email)
+	basequery := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
 		return pb.LoginUserResponse{}, err
@@ -103,7 +103,7 @@ func createToken(userEmail string) (string, error) {
 func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error {
 	var User user.User
 
-	queryValidateUser := fmt.Sprintf(`SELECT * FROM user WHERE email = '%s'`, email)
+	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
 		return err
@@ -130,7 +130,7 @@ func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentP
 		return err
 	}
 
-	updateQuery := fmt.Sprintf(`UPDATE user SET password = '%s' WHERE email = '%s'`, newHashedPassword, email)
+	updateQuery := fmt.Sprintf(`UPDATE users SET password = '%s' WHERE email = '%s'`, newHashedPassword, email)
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {
 		return err
