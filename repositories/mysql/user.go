@@ -6,6 +6,7 @@ import (
 	"fmt"
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/lib-relaunch-cot/repositories/mysql"
+	"golang.org/x/crypto/bcrypt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -18,15 +19,20 @@ type mysqlResource struct {
 type IMySqlUser interface {
 	CreateUser(ctx *context.Context, name, email, password string) error
 	LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error)
-	UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) (*pb.UpdateUserPasswordResponse, error)
+	UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
+	hashPassword, err := bcrypt.GenerateFromPassword([]byte(password), 14)
+	if err != nil {
+		return err
+	}
+
 	basequery := fmt.Sprintf(
 		"INSERT INTO user (name, email, password) VALUES('%s', '%s', '%s')",
 		name,
 		email,
-		password,
+		hashPassword,
 	)
 	rows, err := mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
@@ -38,8 +44,17 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password s
 	return nil
 }
 
+type User struct {
+	userId         int
+	name           string
+	email          string
+	hashedPassword string
+}
+
 func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error) {
-	basequery := fmt.Sprintf(`SELECT * FROM user WHERE email = '%s' AND password = '%s'`, email, password)
+	var user User
+
+	basequery := fmt.Sprintf(`SELECT * FROM user WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
 		return pb.LoginUserResponse{}, err
@@ -48,6 +63,16 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 
 	if !rows.Next() {
 		return pb.LoginUserResponse{}, errors.New("user not found")
+	}
+
+	err = rows.Scan(&user.userId, &user.name, &user.hashedPassword, &user.email)
+	if err != nil {
+		return pb.LoginUserResponse{}, err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.hashedPassword), []byte(password))
+	if err != nil {
+		return pb.LoginUserResponse{}, errors.New("wrong password")
 	}
 
 	tokenString, err := createToken(email)
@@ -81,52 +106,43 @@ func createToken(userEmail string) (string, error) {
 	return tokenString, nil
 }
 
-func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) (*pb.UpdateUserPasswordResponse, error) {
+func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error {
+	var user User
+
 	queryValidateUser := fmt.Sprintf(`SELECT * FROM user WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	defer rows.Close()
 
 	if !rows.Next() {
-		return nil, errors.New("user not found")
+		return errors.New("user not found")
 	}
 
-	queryValidatePassword := fmt.Sprintf(`SELECT * FROM user WHERE email = '%s' AND password = '%s' LIMIT 1`, email, currentPassword)
-	rows, err = mysql.DB.QueryContext(*ctx, queryValidatePassword)
+	err = rows.Scan(&user.userId, &user.name, &user.hashedPassword, &user.email)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	defer rows.Close()
-
-	if !rows.Next() {
-		return nil, errors.New("wrong password")
+	err = bcrypt.CompareHashAndPassword([]byte(user.hashedPassword), []byte(currentPassword))
+	if err != nil {
+		return errors.New("wrong password")
 	}
 
-	updateQuery := fmt.Sprintf(`UPDATE user SET password = '%s' WHERE email = '%s'`, newPassword, email)
+	newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 14)
+	if err != nil {
+		return err
+	}
+
+	updateQuery := fmt.Sprintf(`UPDATE user SET password = '%s' WHERE email = '%s'`, newHashedPassword, email)
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	selectQuery := fmt.Sprintf(`SELECT password FROM user WHERE email = '%s'`, email)
-	row := mysql.DB.QueryRowContext(*ctx, selectQuery)
-
-	var updatedPassword string
-	err = row.Scan(&updatedPassword)
-	if err != nil {
-		return nil, err
-	}
-
-	updateUserPasswordResponse := pb.UpdateUserPasswordResponse{
-		Email:    email,
-		Password: updatedPassword,
-	}
-
-	return &updateUserPasswordResponse, nil
+	return nil
 }
 
 func NewMysqlRepository(client *mysql.Client) IMySqlUser {

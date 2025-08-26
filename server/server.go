@@ -30,13 +30,13 @@ func (r *userResource) LoginUser(ctx context.Context, in *pbUser.LoginUserReques
 	return &loginUserResponse, nil
 }
 
-func (r *userResource) UpdateUserPassword(ctx context.Context, in *pbUser.UpdateUserPasswordRequest) (*pbUser.UpdateUserPasswordResponse, error) {
-	updateUserPasswordResponse, err := r.handler.User.UpdateUserPassword(&ctx, in)
+func (r *userResource) UpdateUserPassword(ctx context.Context, in *pbUser.UpdateUserPasswordRequest) (*empty.Empty, error) {
+	err := r.handler.User.UpdateUserPassword(&ctx, in)
 	if err != nil {
 		return nil, err
 	}
 
-	return updateUserPasswordResponse, nil
+	return &empty.Empty{}, nil
 }
 
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
