@@ -12,7 +12,7 @@
 
 # Como rodar
 - Baixar o golang
-- Setar no terminal 'go env GOPRIVATE=*' para conseguir acessar os repositorios privados do github
+- Setar no terminal 'go env -w GOPRIVATE=*' para conseguir acessar os repositorios privados do github
 - Rodar 'go mod tidy' no terminal para instalar as dependencias
 - Setar as variaveis de ambiente:
   - PORT: (porta em que o microserviço vai rodar)
