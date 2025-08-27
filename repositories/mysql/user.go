@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/relaunch-cot/lib-relaunch-cot/models/user"
+	"time"
+
+	userModel "github.com/relaunch-cot/lib-relaunch-cot/models/user"
+	pbBaseModels "github.com/relaunch-cot/lib-relaunch-cot/proto/base_models"
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/lib-relaunch-cot/repositories/mysql"
 	"golang.org/x/crypto/bcrypt"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -19,8 +21,8 @@ type mysqlResource struct {
 
 type IMySqlUser interface {
 	CreateUser(ctx *context.Context, name, email, password string) error
-	LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error)
-	UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error
+	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
+	UpdateUser(ctx *context.Context, currentUser, newUser *pbBaseModels.User) error
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
@@ -45,36 +47,36 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password s
 	return nil
 }
 
-func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error) {
-	var User user.User
+func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error) {
+	var User userModel.User
 
 	basequery := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
-		return pb.LoginUserResponse{}, err
+		return nil, err
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return pb.LoginUserResponse{}, errors.New("user not found")
+		return nil, errors.New("user not found")
 	}
 
 	err = rows.Scan(&User.UserId, &User.Name, &User.HashedPassword, &User.Email)
 	if err != nil {
-		return pb.LoginUserResponse{}, err
+		return nil, err
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(password))
 	if err != nil {
-		return pb.LoginUserResponse{}, errors.New("wrong password")
+		return nil, errors.New("wrong password")
 	}
 
 	tokenString, err := createToken(email)
 	if err != nil {
-		return pb.LoginUserResponse{}, err
+		return nil, err
 	}
 
-	loginUserResponse := pb.LoginUserResponse{
+	loginUserResponse := &pb.LoginUserResponse{
 		Token: tokenString,
 	}
 
@@ -100,10 +102,10 @@ func createToken(userEmail string) (string, error) {
 	return tokenString, nil
 }
 
-func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error {
-	var User user.User
+func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *pbBaseModels.User) error {
+	var User userModel.User
 
-	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
+	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, currentUser.Email)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
 		return err
@@ -120,17 +122,47 @@ func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentP
 		return err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(currentPassword))
-	if err != nil {
-		return errors.New("wrong password")
+	if currentUser.HashedPassword != "" {
+		err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(currentUser.HashedPassword))
+		if err != nil {
+			return errors.New("wrong password")
+		}
 	}
 
-	newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 14)
-	if err != nil {
-		return err
+	var setParts []string
+
+	// Atualizar nome se fornecido
+	if newUser.Name != "" && newUser.Name != User.Name {
+		setParts = append(setParts, fmt.Sprintf("name = '%s'", newUser.Name))
 	}
 
-	updateQuery := fmt.Sprintf(`UPDATE users SET password = '%s' WHERE email = '%s'`, newHashedPassword, email)
+	// Atualizar email se fornecido
+	if newUser.Email != "" && newUser.Email != User.Email {
+		setParts = append(setParts, fmt.Sprintf("email = '%s'", newUser.Email))
+	}
+
+	// Atualizar senha se fornecida
+	if newUser.HashedPassword != "" {
+		newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.HashedPassword), 14)
+		if err != nil {
+			return err
+		}
+		setParts = append(setParts, fmt.Sprintf("password = '%s'", string(newHashedPassword)))
+	}
+
+	// Se não há campos para atualizar, retornar
+	if len(setParts) == 0 {
+		return errors.New("no fields to update")
+	}
+
+	// Construir e executar query de update
+	setClause := setParts[0]
+	for i := 1; i < len(setParts); i++ {
+		setClause += ", " + setParts[i]
+	}
+
+	updateQuery := fmt.Sprintf(`UPDATE users SET %s WHERE email = '%s'`, setClause, currentUser.Email)
+
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {
 		return err
