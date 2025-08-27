@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+
 	"github.com/relaunch-cot/bff-relaunch/grpc"
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/service-user/repositories"
@@ -9,8 +10,8 @@ import (
 
 type IUserHandler interface {
 	CreateUser(ctx *context.Context, name, email, password string) error
-	LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error)
-	UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPasswordRequest) error
+	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
+	UpdateUser(ctx *context.Context, in *pb.UpdateUserRequest) error
 }
 
 type resource struct {
@@ -27,17 +28,17 @@ func (r *resource) CreateUser(ctx *context.Context, name, email, password string
 	return nil
 }
 
-func (r *resource) LoginUser(ctx *context.Context, email, password string) (pb.LoginUserResponse, error) {
+func (r *resource) LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error) {
 	loginUserResponse, err := r.repositories.Mysql.LoginUser(ctx, email, password)
 	if err != nil {
-		return pb.LoginUserResponse{}, err
+		return nil, err
 	}
 
 	return loginUserResponse, nil
 }
 
-func (r *resource) UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPasswordRequest) error {
-	err := r.repositories.Mysql.UpdateUserPassword(ctx, in.Email, in.CurrentPassword, in.NewPassword)
+func (r *resource) UpdateUser(ctx *context.Context, in *pb.UpdateUserRequest) error {
+	err := r.repositories.Mysql.UpdateUser(ctx, in.CurrentUser, in.NewUser)
 	if err != nil {
 		return err
 	}
