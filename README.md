@@ -1,11 +1,27 @@
-Nome do projeto: ReLaunch
+# Nome do Projeto: ReLaunch
 
-Integrantes:
-Matheus Oliveira Mangualde - 22301194
-Henrique de Freitas Issa - 22300732
-João Pedro Bastos Neves - 22301330
-Eduardo Mapa Avelar Damasceno - 22301674
-Eike Levy Albano Neves - 22402772
-Vinícius Theodoro Giovani - 22300821
+## Integrantes:
+- Matheus Oliveira Mangualde - 22301194
+- Henrique de Freitas Issa - 22300732
+- João Pedro Bastos Neves - 22301330
+- Eduardo Mapa Avelar Damasceno - 22301674
+- Eike Levy Albano Neves - 22402772
+- Vinícius Theodoro Giovani - 22300821
 
-Turma 3B2
+**Turma 3B2**
+
+# Como rodar
+- Baixar o golang
+- Setar no terminal 'go env GOPRIVATE=*' para conseguir acessar os repositorios privados do github
+- Rodar 'go mod tidy' no terminal para instalar as dependencias
+- Setar as variaveis de ambiente:
+  - PORT: (porta em que o microserviço vai rodar)
+  - ## Variáveis de ambiente referente ao banco de dados:
+    **Lembrar de rodar o MySql localmente com uma instancia para o banco de dados que contenha uma tabela 'user' para alimentar as requisições**
+    - MYSQL_HOST: (host do banco de dados MySql)
+    - MYSQL_PORT: (porta em que o banco de daods MySql está rodando)
+    - MYSQL_USER: (usuario do MySql)
+    - MYSQL_PASS: (senha do MySql)
+    - MYSQL_DBNAME: (nome do banco de dados que receberá as requisições)
+- Rodar 'go build main.go' no terminal
+- Rodar 'go run main.go' no terminal
