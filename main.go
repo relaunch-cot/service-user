@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/relaunch-cot/service-user/config"
 	"github.com/relaunch-cot/service-user/resource"
 	"github.com/relaunch-cot/service-user/server/methods"
@@ -13,6 +14,7 @@ func main() {
 	resource.Inject()
 
 	lis, err := net.Listen("tcp", ":"+config.PORT)
+	fmt.Println("Listening on " + config.PORT)
 	if err != nil {
 		log.Fatalf("Failed to listen on %v: %v\n", config.PORT, err)
 	}
