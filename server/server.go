@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-
 	"github.com/golang/protobuf/ptypes/empty"
 	pbUser "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/service-user/handler"
@@ -28,11 +27,11 @@ func (r *userResource) LoginUser(ctx context.Context, in *pbUser.LoginUserReques
 		return nil, err
 	}
 
-	return loginUserResponse, nil
+	return &loginUserResponse, nil
 }
 
-func (r *userResource) UpdateUser(ctx context.Context, in *pbUser.UpdateUserRequest) (*empty.Empty, error) {
-	err := r.handler.User.UpdateUser(&ctx, in)
+func (r *userResource) UpdateUserPassword(ctx context.Context, in *pbUser.UpdateUserPasswordRequest) (*empty.Empty, error) {
+	err := r.handler.User.UpdateUserPassword(&ctx, in)
 	if err != nil {
 		return nil, err
 	}
