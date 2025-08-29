@@ -61,7 +61,7 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 		return nil, errors.New("user not found")
 	}
 
-	err = rows.Scan(&User.UserId, &User.Name, &User.HashedPassword, &User.Email)
+	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.HashedPassword)
 	if err != nil {
 		return nil, err
 	}
