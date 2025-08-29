@@ -105,7 +105,7 @@ func createToken(userEmail string) (string, error) {
 func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *pb.User) error {
 	var User userModel.User
 
-	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, currentUser.Email)
+	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE userId = '%d'`, currentUser.UserId)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *p
 		return errors.New("user not found")
 	}
 
-	err = rows.Scan(&User.UserId, &User.Name, &User.HashedPassword, &User.Email)
+	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.HashedPassword)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *p
 		setClause += ", " + setParts[i]
 	}
 
-	updateQuery := fmt.Sprintf(`UPDATE users SET %s WHERE email = '%s'`, setClause, currentUser.Email)
+	updateQuery := fmt.Sprintf(`UPDATE users SET %s WHERE userId = '%d'`, setClause, currentUser.UserId)
 
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {
