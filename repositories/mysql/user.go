@@ -145,6 +145,16 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId
 	}
 
 	if newUser.Email != "" && newUser.Email != User.Email {
+		queryValidation := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, newUser.Email)
+		rows, err := mysql.DB.QueryContext(*ctx, queryValidation)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		if rows.Next() {
+			return errors.New("already exists an user with this email")
+		}
 		setParts = append(setParts, fmt.Sprintf("email = '%s'", newUser.Email))
 	}
 
