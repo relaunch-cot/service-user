@@ -27,6 +27,17 @@ type IMySqlUser interface {
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
+	queryValidation := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
+	rows, err := mysql.DB.QueryContext(*ctx, queryValidation)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		return errors.New("already exists an user with this email")
+	}
+
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
 		return err
@@ -38,7 +49,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password s
 		email,
 		hashPassword,
 	)
-	rows, err := mysql.DB.QueryContext(*ctx, basequery)
+	rows, err = mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
 		return err
 	}
@@ -72,7 +83,7 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 		return nil, errors.New("wrong password")
 	}
 
-	tokenString, err := createToken(email)
+	tokenString, err := createToken(User.UserId)
 	if err != nil {
 		return nil, err
 	}
@@ -86,11 +97,11 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 
 var secretKey = []byte("secret-key")
 
-func createToken(userEmail string) (string, error) {
+func createToken(userId int) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"userEmail": userEmail,
-			"exp":       time.Now().Add(time.Hour * 24).Unix(),
+			"userId": userId,
+			"exp":    time.Now().Add(time.Hour * 24).Unix(),
 		})
 
 	tokenString, err := token.SignedString(secretKey)
