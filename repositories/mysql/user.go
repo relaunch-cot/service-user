@@ -21,7 +21,7 @@ type mysqlResource struct {
 type IMySqlUser interface {
 	CreateUser(ctx *context.Context, name, email, password string) error
 	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
-	UpdateUser(ctx *context.Context, currentUser, newUser *pb.User) error
+	UpdateUser(ctx *context.Context, password string, userId int64, newUser *pb.User) error
 	UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error
 	DeleteUser(ctx *context.Context, email, password string) error
 }
@@ -103,10 +103,10 @@ func createToken(userEmail string) (string, error) {
 	return tokenString, nil
 }
 
-func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *pb.User) error {
+func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId int64, newUser *pb.User) error {
 	var User userModel.User
 
-	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE userId = '%d'`, currentUser.UserId)
+	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE userId = '%d'`, userId)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
 		return err
@@ -122,12 +122,9 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *p
 	if err != nil {
 		return err
 	}
-
-	if currentUser.HashedPassword != "" {
-		err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(currentUser.HashedPassword))
-		if err != nil {
-			return errors.New("wrong password")
-		}
+	err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(password))
+	if err != nil {
+		return errors.New("wrong password")
 	}
 
 	var setParts []string
@@ -140,14 +137,6 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *p
 		setParts = append(setParts, fmt.Sprintf("email = '%s'", newUser.Email))
 	}
 
-	if newUser.HashedPassword != "" {
-		newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.HashedPassword), 14)
-		if err != nil {
-			return err
-		}
-		setParts = append(setParts, fmt.Sprintf("password = '%s'", string(newHashedPassword)))
-	}
-
 	if len(setParts) == 0 {
 		return errors.New("no fields to update")
 	}
@@ -157,7 +146,7 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *p
 		setClause += ", " + setParts[i]
 	}
 
-	updateQuery := fmt.Sprintf(`UPDATE users SET %s WHERE userId = '%d'`, setClause, currentUser.UserId)
+	updateQuery := fmt.Sprintf(`UPDATE users SET %s WHERE userId = '%d'`, setClause, userId)
 
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {

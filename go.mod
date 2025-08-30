@@ -6,7 +6,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang/protobuf v1.5.4
 	github.com/relaunch-cot/bff-relaunch v0.0.0-20250826172609-3ad2441ff2f3
-	github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250830185353-ccb69d0f643b
+	github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250830200720-1aa7645e48aa
 	golang.org/x/crypto v0.36.0
 	google.golang.org/grpc v1.73.0
 )
