@@ -13,6 +13,7 @@ type IUserHandler interface {
 	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
 	UpdateUser(ctx *context.Context, in *pb.UpdateUserRequest) error
 	UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPasswordRequest) error
+	DeleteUser(ctx *context.Context, in *pb.DeleteUserRequest) error
 }
 
 type resource struct {
@@ -49,6 +50,15 @@ func (r *resource) UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPas
 
 func (r *resource) UpdateUser(ctx *context.Context, in *pb.UpdateUserRequest) error {
 	err := r.repositories.Mysql.UpdateUser(ctx, in.CurrentUser, in.NewUser)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *resource) DeleteUser(ctx *context.Context, in *pb.DeleteUserRequest) error {
+	err := r.repositories.Mysql.DeleteUser(ctx, in.Email, in.Password)
 	if err != nil {
 		return err
 	}

@@ -49,6 +49,15 @@ func (r *userResource) UpdateUser(ctx context.Context, in *pbUser.UpdateUserRequ
 	return &empty.Empty{}, nil
 }
 
+func (r *userResource) DeleteUser(ctx context.Context, in *pbUser.DeleteUserRequest) (*empty.Empty, error) {
+	err := r.handler.User.DeleteUser(&ctx, in)
+	if err != nil {
+		return nil, err
+	}
+
+	return &empty.Empty{}, nil
+}
+
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,

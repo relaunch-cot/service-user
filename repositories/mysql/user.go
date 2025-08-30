@@ -23,6 +23,7 @@ type IMySqlUser interface {
 	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
 	UpdateUser(ctx *context.Context, currentUser, newUser *pb.User) error
 	UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error
+	DeleteUser(ctx *context.Context, email, password string) error
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
@@ -131,17 +132,14 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *p
 
 	var setParts []string
 
-	// Atualizar nome se fornecido
 	if newUser.Name != "" && newUser.Name != User.Name {
 		setParts = append(setParts, fmt.Sprintf("name = '%s'", newUser.Name))
 	}
 
-	// Atualizar email se fornecido
 	if newUser.Email != "" && newUser.Email != User.Email {
 		setParts = append(setParts, fmt.Sprintf("email = '%s'", newUser.Email))
 	}
 
-	// Atualizar senha se fornecida
 	if newUser.HashedPassword != "" {
 		newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(newUser.HashedPassword), 14)
 		if err != nil {
@@ -150,12 +148,10 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, currentUser, newUser *p
 		setParts = append(setParts, fmt.Sprintf("password = '%s'", string(newHashedPassword)))
 	}
 
-	// Se não há campos para atualizar, retornar
 	if len(setParts) == 0 {
 		return errors.New("no fields to update")
 	}
 
-	// Construir e executar query de update
 	setClause := setParts[0]
 	for i := 1; i < len(setParts); i++ {
 		setClause += ", " + setParts[i]
@@ -203,6 +199,40 @@ func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentP
 
 	updateQuery := fmt.Sprintf(`UPDATE users SET password = '%s' WHERE email = '%s'`, newHashedPassword, email)
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *mysqlResource) DeleteUser(ctx *context.Context, email, password string) error {
+	var User userModel.User
+
+	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
+
+	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+	if !rows.Next() {
+		return errors.New("user not found")
+	}
+
+	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.HashedPassword)
+	if err != nil {
+		return err
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(password))
+	if err != nil {
+		return errors.New("wrong password")
+	}
+
+	deleteQuery := fmt.Sprintf(`DELETE FROM users WHERE userId = '%d'`, User.UserId)
+	_, err = mysql.DB.ExecContext(*ctx, deleteQuery)
 	if err != nil {
 		return err
 	}
