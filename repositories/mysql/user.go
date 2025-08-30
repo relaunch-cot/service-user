@@ -197,7 +197,7 @@ func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentP
 		return err
 	}
 
-	updateQuery := fmt.Sprintf(`UPDATE users SET password = '%s' WHERE email = '%s'`, newHashedPassword, email)
+	updateQuery := fmt.Sprintf(`UPDATE users SET password = '%s' WHERE userId = '%s'`, newHashedPassword, User.UserId)
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {
 		return err
