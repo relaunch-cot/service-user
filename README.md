@@ -17,7 +17,7 @@
 - Setar as variaveis de ambiente:
   - PORT: (porta em que o microserviço vai rodar)
   - ## Variáveis de ambiente referente ao banco de dados:
-    **Lembrar de rodar o MySql localmente com uma instancia para o banco de dados que contenha uma tabela 'user' para alimentar as requisições**
+    **Lembrar de rodar o MySql localmente com uma instancia para o banco de dados que contenha uma tabela 'users' para alimentar as requisições**
     - MYSQL_HOST: (host do banco de dados MySql)
     - MYSQL_PORT: (porta em que o banco de daods MySql está rodando)
     - MYSQL_USER: (usuario do MySql)
