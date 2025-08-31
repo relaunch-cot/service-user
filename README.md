@@ -25,3 +25,18 @@
     - MYSQL_DBNAME: (nome do banco de dados que receberá as requisições)
 - Rodar 'go build main.go' no terminal
 - Rodar 'go run main.go' no terminal
+
+## Funcionalidades
+### Backend/Frontend
+- [x]  Permitir login do usuário
+- [x]  Permitir cadastro do usuário
+- [x]  Usuário redefinir  a senha
+- [x]  Permitir deletar usuário
+- [x]  Permitir atualizar email e nome
+- [ ]  O usuário deve poder personalizar as configurações do perfil
+- [ ]  Deve ser possível exportar relatórios em PDF.
+- [ ]  O freelancer define o tempo para o desenvolvimento da aplicação
+
+### Frontend
+- [ ]  Usuário fazer logout da plataforma
+- [ ]  O usuário deve conseguir selecionar o tema da plataforma
