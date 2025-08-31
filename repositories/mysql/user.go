@@ -109,7 +109,7 @@ func createToken(userId int) (string, error) {
 		return "", err
 	}
 
-	tokenString = fmt.Sprintf(`Bearer: %s`, tokenString)
+	tokenString = fmt.Sprintf(`Bearer %s`, tokenString)
 
 	return tokenString, nil
 }
