@@ -2,12 +2,13 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net"
+
 	"github.com/relaunch-cot/service-user/config"
 	"github.com/relaunch-cot/service-user/resource"
 	"github.com/relaunch-cot/service-user/server/methods"
 	"google.golang.org/grpc"
-	"log"
-	"net"
 )
 
 func main() {

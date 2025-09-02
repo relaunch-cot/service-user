@@ -58,6 +58,17 @@ func (r *userResource) DeleteUser(ctx context.Context, in *pbUser.DeleteUserRequ
 	return &empty.Empty{}, nil
 }
 
+func (r *userResource) GenerateReportFromJSON(ctx context.Context, in *pbUser.GenerateReportRequest) (*pbUser.GenerateReportResponse, error) {
+	pdfBytes, err := r.handler.User.GenerateReportFromJSON(&ctx, in.JsonData)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pbUser.GenerateReportResponse{
+		PdfData: pdfBytes,
+	}, nil
+}
+
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,
