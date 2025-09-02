@@ -104,7 +104,10 @@ func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string)
 
 	// Data de geração
 	pdf.SetFont("Arial", "", 10)
-	pdf.Cell(190, 8, fmt.Sprintf("Gerado em: %s", time.Now().Format("02/01/2006 15:04:05")))
+	loc, _ := time.LoadLocation("America/Sao_Paulo")
+	horaBrasil := time.Now().In(loc)
+
+	pdf.Cell(190, 8, fmt.Sprintf("Gerado em: %s", horaBrasil.Format("02/01/2006 15:04:05")))
 	pdf.Ln(15)
 
 	// Cabeçalhos da tabela
