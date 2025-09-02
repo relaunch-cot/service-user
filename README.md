@@ -86,5 +86,5 @@ Veja o arquivo `docs/grpc_pdf_integration.md` para exemplos completos de como im
 - [ ]  O freelancer define o tempo para o desenvolvimento da aplicação
 
 ### Frontend
-- [ ]  Usuário fazer logout da plataforma
+- [x]  Usuário fazer logout da plataforma
 - [ ]  O usuário deve conseguir selecionar o tema da plataforma
