@@ -28,6 +28,10 @@ github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250831053227-9921a76bb5eb h1:0
 github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250831053227-9921a76bb5eb/go.mod h1:AnBqPVRdO0Fr/Cscv1OszBA5hDJCM4LylAvj39riXws=
 github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250902003624-9c0434fc0589 h1:xiYSMorEM15qoDNWpN8FEPGTJdHHWbv8x4JgPd24cVs=
 github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250902003624-9c0434fc0589/go.mod h1:AnBqPVRdO0Fr/Cscv1OszBA5hDJCM4LylAvj39riXws=
+github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250910191711-3e3e0500ea2a h1:5OtqsfRUMkH1ckXyJ6504mFGu8vT/h2bk3hBIaY5jqw=
+github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250910191711-3e3e0500ea2a/go.mod h1:AnBqPVRdO0Fr/Cscv1OszBA5hDJCM4LylAvj39riXws=
+github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250910193952-06dac79e0177 h1:AzXzBcYYysnFl32l7acqgrkbC2saHdrdZ1AMSqSMBhY=
+github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250910193952-06dac79e0177/go.mod h1:AnBqPVRdO0Fr/Cscv1OszBA5hDJCM4LylAvj39riXws=
 github.com/ruudk/golang-pdf417 v0.0.0-20181029194003-1af4ab5afa58/go.mod h1:6lfFZQK844Gfx8o5WFuvpxWRwnSoipWe/p622j1v06w=
 github.com/stretchr/testify v1.2.2/go.mod h1:a8OnRcib4nhh0OaRAV+Yts87kKdq0PP7pXfy6kDkUVs=
 go.opentelemetry.io/auto/sdk v1.1.0 h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=

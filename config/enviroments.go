@@ -11,4 +11,8 @@ var (
 	MYSQL_USER   = os.Getenv("MYSQL_USER")
 	MYSQL_PASS   = os.Getenv("MYSQL_PASS")
 	MYSQL_DBNAME = os.Getenv("MYSQL_DBNAME")
+
+	/////////////////////////////////////////// EMAIL SENDING CONFIGURATION
+	EMAIL          = os.Getenv("EMAIL")
+	EMAIL_PASSWORD = os.Getenv("EMAIL_PASSWORD")
 )

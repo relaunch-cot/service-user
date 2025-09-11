@@ -5,10 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/smtp"
 	"time"
 
 	"github.com/jung-kurt/gofpdf"
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
+	"github.com/relaunch-cot/service-user/config"
 	"github.com/relaunch-cot/service-user/repositories"
 )
 
@@ -27,6 +29,7 @@ type IUserHandler interface {
 	UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPasswordRequest) error
 	DeleteUser(ctx *context.Context, in *pb.DeleteUserRequest) error
 	GenerateReportFromJSON(ctx *context.Context, jsonData string) ([]byte, error)
+	SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error
 }
 
 type resource struct {
@@ -79,14 +82,12 @@ func (r *resource) DeleteUser(ctx *context.Context, in *pb.DeleteUserRequest) er
 }
 
 func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string) ([]byte, error) {
-	// Parse do JSON recebido
 	var reportData ReportData
 	err := json.Unmarshal([]byte(jsonData), &reportData)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao fazer parse do JSON: %v", err)
 	}
 
-	// Criar PDF
 	pdf := gofpdf.New("P", "mm", "A4", "")
 	pdf.AddPage()
 
@@ -95,19 +96,16 @@ func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string)
 	pdf.Cell(190, 10, reportData.Title)
 	pdf.Ln(15)
 
-	// Subtítulo (se existir)
 	if reportData.Subtitle != "" {
 		pdf.SetFont("Arial", "", 12)
 		pdf.Cell(190, 8, reportData.Subtitle)
 		pdf.Ln(10)
 	}
 
-	// Data de geração
 	pdf.SetFont("Arial", "", 10)
 	pdf.Cell(190, 8, fmt.Sprintf("Gerado em: %s", time.Now().Format("02/01/2006 15:04:05")))
 	pdf.Ln(15)
 
-	// Cabeçalhos da tabela
 	if len(reportData.Headers) > 0 {
 		pdf.SetFont("Arial", "B", 10)
 		cellWidth := 190.0 / float64(len(reportData.Headers))
@@ -117,7 +115,6 @@ func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string)
 		}
 		pdf.Ln(10)
 
-		// Dados das linhas
 		pdf.SetFont("Arial", "", 9)
 		for _, row := range reportData.Rows {
 			for i, cell := range row {
@@ -129,19 +126,16 @@ func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string)
 		}
 	}
 
-	// Footer (se existir)
 	if reportData.Footer != "" {
 		pdf.Ln(10)
 		pdf.SetFont("Arial", "I", 10)
 		pdf.Cell(190, 8, reportData.Footer)
 	}
 
-	// Adicionar estatísticas
 	pdf.Ln(10)
 	pdf.SetFont("Arial", "B", 10)
 	pdf.Cell(190, 8, fmt.Sprintf("Total de registros: %d", len(reportData.Rows)))
 
-	// Converter para bytes usando buffer
 	var buf bytes.Buffer
 	err = pdf.Output(&buf)
 	if err != nil {
@@ -149,6 +143,29 @@ func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string)
 	}
 
 	return buf.Bytes(), nil
+}
+
+func (r *resource) SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error {
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
+
+	fromEmail := config.EMAIL
+	password := config.EMAIL_PASSWORD
+
+	subject := "Recuperação de Senha"
+	body := fmt.Sprintf("Clique no link abaixo para redefinir sua senha:\n\n%s", recoveryLink)
+
+	message := []byte("Subject: " + subject + "\r\n" +
+		"\r\n" +
+		body + "\r\n")
+
+	auth := smtp.PlainAuth("", fromEmail, password, smtpHost)
+
+	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, fromEmail, []string{email}, message)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func NewUserHandler(repositories *repositories.Repositories) IUserHandler {

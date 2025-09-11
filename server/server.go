@@ -69,6 +69,15 @@ func (r *userResource) GenerateReportFromJSON(ctx context.Context, in *pbUser.Ge
 	}, nil
 }
 
+func (r *userResource) SendPasswordRecoveryEmail(ctx context.Context, in *pbUser.SendPasswordRecoveryEmailRequest) (*empty.Empty, error) {
+	err := r.handler.User.SendPasswordRecoveryEmail(&ctx, in.Email, in.RecoveryLink)
+	if err != nil {
+		return nil, err
+	}
+
+	return &empty.Empty{}, nil
+}
+
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,

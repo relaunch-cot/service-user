@@ -7,7 +7,7 @@ require (
 	github.com/golang/protobuf v1.5.4
 	github.com/jung-kurt/gofpdf v1.16.2
 	github.com/relaunch-cot/bff-relaunch v0.0.0-20250826172609-3ad2441ff2f3
-	github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250902003624-9c0434fc0589
+	github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20250910193952-06dac79e0177
 	golang.org/x/crypto v0.36.0
 	google.golang.org/grpc v1.73.0
 )
