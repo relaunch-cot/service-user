@@ -13,6 +13,5 @@ var (
 	MYSQL_DBNAME = os.Getenv("MYSQL_DBNAME")
 
 	/////////////////////////////////////////// EMAIL SENDING CONFIGURATION
-	EMAIL          = os.Getenv("EMAIL")
-	EMAIL_PASSWORD = os.Getenv("EMAIL_PASSWORD")
+	SENDGRID_API_KEY = os.Getenv("SENDGRID_API_KEY")
 )

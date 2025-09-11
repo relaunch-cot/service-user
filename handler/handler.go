@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/smtp"
 	"time"
 
 	"github.com/jung-kurt/gofpdf"
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/service-user/config"
 	"github.com/relaunch-cot/service-user/repositories"
+	"github.com/sendgrid/sendgrid-go"
+	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
 type ReportData struct {
@@ -146,25 +147,29 @@ func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string)
 }
 
 func (r *resource) SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error {
-	smtpHost := "smtp.gmail.com"
-	smtpPort := "587"
-
-	fromEmail := config.EMAIL
-	password := config.EMAIL_PASSWORD
-
-	subject := "Recuperação de Senha"
-	body := fmt.Sprintf("Clique no link abaixo para redefinir sua senha:\n\n%s", recoveryLink)
-
-	message := []byte("Subject: " + subject + "\r\n" +
-		"\r\n" +
-		body + "\r\n")
-
-	auth := smtp.PlainAuth("", fromEmail, password, smtpHost)
-
-	err := smtp.SendMail(smtpHost+":"+smtpPort, auth, fromEmail, []string{email}, message)
+	name, err := r.repositories.Mysql.SendPasswordRecoveryEmail(ctx, email)
 	if err != nil {
 		return err
 	}
+	from := mail.NewEmail("ReLaunch Support", "relaunch-cot@gmail.com")
+	subject := "Recuperação de Senha"
+	to := mail.NewEmail(*name, email)
+
+	plainTextContent := fmt.Sprintf("Clique no link para redefinir sua senha: %s", recoveryLink)
+	htmlContent := fmt.Sprintf("<p>Clique no link para redefinir sua senha:</p><a href='%s'>Recuperar Senha</a>", recoveryLink)
+
+	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+
+	client := sendgrid.NewSendClient(config.SENDGRID_API_KEY)
+	response, err := client.Send(message)
+	if err != nil {
+		return fmt.Errorf("erro ao enviar email: %w", err)
+	}
+
+	if response.StatusCode >= 400 {
+		return fmt.Errorf("erro no envio do email: %s", response.Body)
+	}
+
 	return nil
 }
 

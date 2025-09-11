@@ -24,6 +24,7 @@ type IMySqlUser interface {
 	UpdateUser(ctx *context.Context, password string, userId int64, newUser *pb.User) error
 	UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error
 	DeleteUser(ctx *context.Context, email, password string) error
+	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
@@ -248,6 +249,28 @@ func (r *mysqlResource) DeleteUser(ctx *context.Context, email, password string)
 	}
 
 	return nil
+}
+
+func (r *mysqlResource) SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error) {
+	var User userModel.User
+
+	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s' LIMIT 1`, email)
+	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	if !rows.Next() {
+		return nil, errors.New("user not found")
+	}
+
+	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.HashedPassword)
+	if err != nil {
+		return nil, err
+	}
+
+	return &User.Name, nil
 }
 
 func NewMysqlRepository(client *mysql.Client) IMySqlUser {
