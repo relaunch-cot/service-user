@@ -151,7 +151,7 @@ func (r *resource) SendPasswordRecoveryEmail(ctx *context.Context, email, recove
 	if err != nil {
 		return err
 	}
-	from := mail.NewEmail("ReLaunch Support", "relaunch-cot@gmail.com")
+	from := mail.NewEmail(config.NAME, config.EMAIL)
 	subject := "Recuperação de Senha"
 	to := mail.NewEmail(*name, email)
 

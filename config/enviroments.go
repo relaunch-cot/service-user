@@ -14,4 +14,6 @@ var (
 
 	/////////////////////////////////////////// EMAIL SENDING CONFIGURATION
 	SENDGRID_API_KEY = os.Getenv("SENDGRID_API_KEY")
+	EMAIL            = os.Getenv("EMAIL")
+	NAME             = os.Getenv("NAME")
 )
