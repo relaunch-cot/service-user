@@ -155,10 +155,19 @@ func (r *resource) SendPasswordRecoveryEmail(ctx *context.Context, email, recove
 	subject := "Recuperação de Senha"
 	to := mail.NewEmail(*name, email)
 
-	plainTextContent := fmt.Sprintf("Clique no link para redefinir sua senha: %s", recoveryLink)
-	htmlContent := fmt.Sprintf("<p>Clique no link para redefinir sua senha:</p><a href='%s'>Recuperar Senha</a>", recoveryLink)
+	plainTextContent := fmt.Sprintf("Olá %s,\n\nClique no link abaixo para redefinir sua senha:\n%s\n\nSe você não solicitou, ignore este e-mail.", *name, recoveryLink)
+
+	htmlContent := fmt.Sprintf(`
+        <p>Olá %s,</p>
+        <p>Clique no link abaixo para redefinir sua senha:</p>
+        <p><a href="%s">Recuperar Senha</a></p>
+        <p>Se você não solicitou, ignore este e-mail.</p>
+    `, *name, recoveryLink)
 
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
+
+	replyTo := mail.NewEmail("ReLaunch Support", "support@relaunch.com.br")
+	message.SetReplyTo(replyTo)
 
 	client := sendgrid.NewSendClient(config.SENDGRID_API_KEY)
 	response, err := client.Send(message)
