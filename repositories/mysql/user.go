@@ -22,7 +22,7 @@ type IMySqlUser interface {
 	CreateUser(ctx *context.Context, name, email, password string) error
 	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
 	UpdateUser(ctx *context.Context, password string, userId int64, newUser *pb.User) error
-	UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error
+	UpdateUserPassword(ctx *context.Context, userId int64, newPassword string) error
 	DeleteUser(ctx *context.Context, email, password string) error
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
 }
@@ -178,37 +178,13 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId
 	return nil
 }
 
-func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, email, currentPassword, newPassword string) error {
-	var User userModel.User
-
-	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
-	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
-	if err != nil {
-		return err
-	}
-
-	defer rows.Close()
-
-	if !rows.Next() {
-		return errors.New("user not found")
-	}
-
-	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.HashedPassword)
-	if err != nil {
-		return err
-	}
-
-	err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(currentPassword))
-	if err != nil {
-		return errors.New("wrong password")
-	}
-
+func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, userId int64, newPassword string) error {
 	newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 14)
 	if err != nil {
 		return err
 	}
 
-	updateQuery := fmt.Sprintf(`UPDATE users SET password = '%s' WHERE userId = '%d'`, newHashedPassword, User.UserId)
+	updateQuery := fmt.Sprintf(`UPDATE users SET password = '%s' WHERE userId = '%d'`, newHashedPassword, userId)
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {
 		return err

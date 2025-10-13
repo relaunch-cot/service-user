@@ -56,7 +56,7 @@ func (r *resource) LoginUser(ctx *context.Context, email, password string) (*pb.
 }
 
 func (r *resource) UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPasswordRequest) error {
-	err := r.repositories.Mysql.UpdateUserPassword(ctx, in.Email, in.CurrentPassword, in.NewPassword)
+	err := r.repositories.Mysql.UpdateUserPassword(ctx, in.UserId, in.NewPassword)
 	if err != nil {
 		return err
 	}
