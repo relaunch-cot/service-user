@@ -7,6 +7,7 @@ import (
 	"time"
 
 	userModel "github.com/relaunch-cot/lib-relaunch-cot/models/user"
+	pbBaseModels "github.com/relaunch-cot/lib-relaunch-cot/proto/base_models"
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/lib-relaunch-cot/repositories/mysql"
 	"golang.org/x/crypto/bcrypt"
@@ -21,10 +22,11 @@ type mysqlResource struct {
 type IMySqlUser interface {
 	CreateUser(ctx *context.Context, name, email, password string) error
 	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
-	UpdateUser(ctx *context.Context, password string, userId int64, newUser *pb.User) error
+	UpdateUser(ctx *context.Context, password string, userId int64, newUser *pbBaseModels.User) error
 	UpdateUserPassword(ctx *context.Context, userId int64, newPassword string) error
 	DeleteUser(ctx *context.Context, email, password string) error
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
+	CreateNewChat(ctx *context.Context, createdBy int64, userIds []int64) error
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
@@ -115,7 +117,7 @@ func createToken(userId int) (string, error) {
 	return tokenString, nil
 }
 
-func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId int64, newUser *pb.User) error {
+func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId int64, newUser *pbBaseModels.User) error {
 	var User userModel.User
 
 	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE userId = '%d'`, userId)
@@ -247,6 +249,41 @@ func (r *mysqlResource) SendPasswordRecoveryEmail(ctx *context.Context, email st
 	}
 
 	return &User.Name, nil
+}
+
+func (r *mysqlResource) CreateNewChat(ctx *context.Context, createdBy int64, userIds []int64) error {
+	queryValidate := fmt.Sprintf(
+		`SELECT * 
+					FROM chats 
+					WHERE user1_id = %d AND user2_id = %d
+					OR user1_id = %d AND user2_id = %d`,
+		userIds[0], userIds[1], userIds[0], userIds[1],
+	)
+	rows, err := mysql.DB.QueryContext(*ctx, queryValidate)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+	if rows.Next() {
+		return errors.New("already exists an chat with these participants")
+	}
+
+	basequery := fmt.Sprintf(
+		"INSERT INTO chats (createdBy, user1_id, user2_id) VALUES('%d', '%d', '%d')",
+		createdBy,
+		userIds[0],
+		userIds[1],
+	)
+
+	rows, err = mysql.DB.QueryContext(*ctx, basequery)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	return nil
 }
 
 func NewMysqlRepository(client *mysql.Client) IMySqlUser {

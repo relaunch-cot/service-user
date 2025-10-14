@@ -78,6 +78,15 @@ func (r *userResource) SendPasswordRecoveryEmail(ctx context.Context, in *pbUser
 	return &empty.Empty{}, nil
 }
 
+func (r *userResource) CreateNewChat(ctx context.Context, in *pbUser.CreateNewChatRequest) (*empty.Empty, error) {
+	err := r.handler.User.CreateNewChat(&ctx, in.CreatedBy, in.UserIds)
+	if err != nil {
+		return nil, err
+	}
+
+	return &empty.Empty{}, nil
+}
+
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,
