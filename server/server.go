@@ -87,6 +87,15 @@ func (r *userResource) CreateNewChat(ctx context.Context, in *pbUser.CreateNewCh
 	return &empty.Empty{}, nil
 }
 
+func (r *userResource) SendMessage(ctx context.Context, in *pbUser.SendMessageRequest) (*empty.Empty, error) {
+	err := r.handler.User.SendMessage(&ctx, in.ChatId, in.SenderId, in.MessageContent)
+	if err != nil {
+		return nil, err
+	}
+
+	return &empty.Empty{}, nil
+}
+
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,

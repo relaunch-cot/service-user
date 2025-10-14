@@ -32,6 +32,7 @@ type IUserHandler interface {
 	GenerateReportFromJSON(ctx *context.Context, jsonData string) ([]byte, error)
 	SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error
 	CreateNewChat(ctx *context.Context, createdBy int64, userIds []int64) error
+	SendMessage(ctx *context.Context, chatId, senderId int64, messageContent string) error
 }
 
 type resource struct {
@@ -185,6 +186,15 @@ func (r *resource) SendPasswordRecoveryEmail(ctx *context.Context, email, recove
 
 func (r *resource) CreateNewChat(ctx *context.Context, createdBy int64, userIds []int64) error {
 	err := r.repositories.Mysql.CreateNewChat(ctx, createdBy, userIds)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *resource) SendMessage(ctx *context.Context, chatId, senderId int64, messageContent string) error {
+	err := r.repositories.Mysql.SendMessage(ctx, chatId, senderId, messageContent)
 	if err != nil {
 		return err
 	}

@@ -27,6 +27,7 @@ type IMySqlUser interface {
 	DeleteUser(ctx *context.Context, email, password string) error
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
 	CreateNewChat(ctx *context.Context, createdBy int64, userIds []int64) error
+	SendMessage(ctx *context.Context, chatId, senderId int64, messageContent string) error
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
@@ -252,6 +253,8 @@ func (r *mysqlResource) SendPasswordRecoveryEmail(ctx *context.Context, email st
 }
 
 func (r *mysqlResource) CreateNewChat(ctx *context.Context, createdBy int64, userIds []int64) error {
+	currentDate := time.Now()
+
 	queryValidate := fmt.Sprintf(
 		`SELECT * 
 					FROM chats 
@@ -270,10 +273,50 @@ func (r *mysqlResource) CreateNewChat(ctx *context.Context, createdBy int64, use
 	}
 
 	basequery := fmt.Sprintf(
-		"INSERT INTO chats (createdBy, user1_id, user2_id) VALUES('%d', '%d', '%d')",
+		"INSERT INTO chats (createdBy, user1_id, user2_id, createdAt) VALUES(%d, %d, %d, '%s')",
 		createdBy,
 		userIds[0],
 		userIds[1],
+		currentDate.Format("2006-01-02 15:04:05"),
+	)
+
+	rows, err = mysql.DB.QueryContext(*ctx, basequery)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	return nil
+}
+
+func (r *mysqlResource) SendMessage(ctx *context.Context, chatId, senderId int64, messageContent string) error {
+	currentDate := time.Now()
+
+	queryValidation := fmt.Sprintf(
+		`SELECT * 
+					FROM chats 
+					WHERE chatId = %d 
+					    AND user1_id = %d OR user2_id = %d`,
+		chatId, senderId, senderId,
+	)
+
+	rows, err := mysql.DB.QueryContext(*ctx, queryValidation)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+	if !rows.Next() {
+		return errors.New("this user is not part of this chat")
+	}
+
+	basequery := fmt.Sprintf(
+		"INSERT INTO messages (chatId, senderId, content, createdAt) VALUES(%d, %d, '%s', '%s')",
+		chatId,
+		senderId,
+		messageContent,
+		currentDate.Format("2006-01-02 15:04:05"),
 	)
 
 	rows, err = mysql.DB.QueryContext(*ctx, basequery)
