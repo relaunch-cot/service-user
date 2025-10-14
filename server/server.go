@@ -78,33 +78,6 @@ func (r *userResource) SendPasswordRecoveryEmail(ctx context.Context, in *pbUser
 	return &empty.Empty{}, nil
 }
 
-func (r *userResource) CreateNewChat(ctx context.Context, in *pbUser.CreateNewChatRequest) (*empty.Empty, error) {
-	err := r.handler.User.CreateNewChat(&ctx, in.CreatedBy, in.UserIds)
-	if err != nil {
-		return nil, err
-	}
-
-	return &empty.Empty{}, nil
-}
-
-func (r *userResource) SendMessage(ctx context.Context, in *pbUser.SendMessageRequest) (*empty.Empty, error) {
-	err := r.handler.User.SendMessage(&ctx, in.ChatId, in.SenderId, in.MessageContent)
-	if err != nil {
-		return nil, err
-	}
-
-	return &empty.Empty{}, nil
-}
-
-func (r *userResource) GetAllMessagesFromChat(ctx context.Context, in *pbUser.GetAllMessagesFromChatRequest) (*pbUser.GetAllMessagesFromChatResponse, error) {
-	response, err := r.handler.User.GetAllMessagesFromChat(&ctx, in.ChatId)
-	if err != nil {
-		return nil, err
-	}
-
-	return response, nil
-}
-
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,
