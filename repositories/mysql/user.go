@@ -28,6 +28,7 @@ type IMySqlUser interface {
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
 	CreateNewChat(ctx *context.Context, createdBy int64, userIds []int64) error
 	SendMessage(ctx *context.Context, chatId, senderId int64, messageContent string) error
+	GetAllMessagesFromChat(ctx *context.Context, chatId int64) ([]*pbBaseModels.Message, error)
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
@@ -327,6 +328,41 @@ func (r *mysqlResource) SendMessage(ctx *context.Context, chatId, senderId int64
 	defer rows.Close()
 
 	return nil
+}
+
+func (r *mysqlResource) GetAllMessagesFromChat(ctx *context.Context, chatId int64) ([]*pbBaseModels.Message, error) {
+	baseQuery := fmt.Sprintf(`SELECT * FROM messages WHERE chatId = %d`, chatId)
+
+	rows, err := mysql.DB.QueryContext(*ctx, baseQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	messages := make([]*pbBaseModels.Message, 0)
+	for rows.Next() {
+		message := &pbBaseModels.Message{}
+
+		err := rows.Scan(
+			&message.MessageId,
+			&message.ChatId,
+			&message.SenderId,
+			&message.MessageContent,
+			&message.CreatedAt,
+		)
+		if err != nil {
+			return nil, errors.New("error scanning mysql row: " + err.Error())
+		}
+
+		messages = append(messages, message)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, errors.New("row iteration error: " + err.Error())
+	}
+
+	return messages, nil
 }
 
 func NewMysqlRepository(client *mysql.Client) IMySqlUser {

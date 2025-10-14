@@ -33,6 +33,7 @@ type IUserHandler interface {
 	SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error
 	CreateNewChat(ctx *context.Context, createdBy int64, userIds []int64) error
 	SendMessage(ctx *context.Context, chatId, senderId int64, messageContent string) error
+	GetAllMessagesFromChat(ctx *context.Context, chatId int64) (*pb.GetAllMessagesFromChatResponse, error)
 }
 
 type resource struct {
@@ -200,6 +201,19 @@ func (r *resource) SendMessage(ctx *context.Context, chatId, senderId int64, mes
 	}
 
 	return nil
+}
+
+func (r *resource) GetAllMessagesFromChat(ctx *context.Context, chatId int64) (*pb.GetAllMessagesFromChatResponse, error) {
+	mysqlResponse, err := r.repositories.Mysql.GetAllMessagesFromChat(ctx, chatId)
+	if err != nil {
+		return nil, err
+	}
+
+	getAllMessagesFromChatResponse := &pb.GetAllMessagesFromChatResponse{
+		Messages: mysqlResponse,
+	}
+
+	return getAllMessagesFromChatResponse, nil
 }
 
 func NewUserHandler(repositories *repositories.Repositories) IUserHandler {
