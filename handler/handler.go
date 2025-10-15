@@ -11,6 +11,7 @@ import (
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/service-user/config"
 	"github.com/relaunch-cot/service-user/repositories"
+	"github.com/relaunch-cot/service-user/resource/transformer"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
@@ -31,6 +32,7 @@ type IUserHandler interface {
 	DeleteUser(ctx *context.Context, in *pb.DeleteUserRequest) error
 	GenerateReportFromJSON(ctx *context.Context, jsonData string) ([]byte, error)
 	SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error
+	GetUserProfile(ctx *context.Context, userId int64) (*pb.GetUserProfileResponse, error)
 }
 
 type resource struct {
@@ -180,6 +182,24 @@ func (r *resource) SendPasswordRecoveryEmail(ctx *context.Context, email, recove
 	}
 
 	return nil
+}
+
+func (r *resource) GetUserProfile(ctx *context.Context, userId int64) (*pb.GetUserProfileResponse, error) {
+	mysqlResponse, err := r.repositories.Mysql.GetUserProfile(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	baseModelsUser, err := transformer.GetUserProfileToBaseModels(mysqlResponse)
+	if err != nil {
+		return nil, err
+	}
+
+	getUserProfileResponse := &pb.GetUserProfileResponse{
+		User: baseModelsUser,
+	}
+
+	return getUserProfileResponse, nil
 }
 
 func NewUserHandler(repositories *repositories.Repositories) IUserHandler {

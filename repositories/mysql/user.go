@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
-	userModel "github.com/relaunch-cot/lib-relaunch-cot/models/user"
+	libModels "github.com/relaunch-cot/lib-relaunch-cot/models"
 	pbBaseModels "github.com/relaunch-cot/lib-relaunch-cot/proto/base_models"
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/lib-relaunch-cot/repositories/mysql"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/status"
 
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -26,6 +28,7 @@ type IMySqlUser interface {
 	UpdateUserPassword(ctx *context.Context, userId int64, newPassword string) error
 	DeleteUser(ctx *context.Context, email, password string) error
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
+	GetUserProfile(ctx *context.Context, userId int64) (*libModels.User, error)
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
@@ -62,7 +65,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password s
 }
 
 func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error) {
-	var User userModel.User
+	var User libModels.User
 
 	basequery := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, basequery)
@@ -117,7 +120,7 @@ func createToken(userId int) (string, error) {
 }
 
 func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId int64, newUser *pbBaseModels.User) error {
-	var User userModel.User
+	var User libModels.User
 
 	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE userId = '%d'`, userId)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
@@ -195,7 +198,7 @@ func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, userId int64, n
 }
 
 func (r *mysqlResource) DeleteUser(ctx *context.Context, email, password string) error {
-	var User userModel.User
+	var User libModels.User
 
 	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
 
@@ -229,7 +232,7 @@ func (r *mysqlResource) DeleteUser(ctx *context.Context, email, password string)
 }
 
 func (r *mysqlResource) SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error) {
-	var User userModel.User
+	var User libModels.User
 
 	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s' LIMIT 1`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
@@ -248,6 +251,37 @@ func (r *mysqlResource) SendPasswordRecoveryEmail(ctx *context.Context, email st
 	}
 
 	return &User.Name, nil
+}
+
+func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId int64) (*libModels.User, error) {
+	baseQuery := fmt.Sprintf(
+		`SELECT 
+    		u.name, 
+    		u.email
+		FROM
+    		users u
+		WHERE
+    		u.userId = %d`,
+		userId,
+	)
+
+	rows, err := mysql.DB.QueryContext(*ctx, baseQuery)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+	if !rows.Next() {
+		return nil, status.Error(http.StatusNotFound, "user not found")
+	}
+
+	var User libModels.User
+	err = rows.Scan(&User.Name, &User.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	return &User, nil
 }
 
 func NewMysqlRepository(client *mysql.Client) IMySqlUser {

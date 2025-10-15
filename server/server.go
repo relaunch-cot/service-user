@@ -78,6 +78,15 @@ func (r *userResource) SendPasswordRecoveryEmail(ctx context.Context, in *pbUser
 	return &empty.Empty{}, nil
 }
 
+func (r *userResource) GetUserProfile(ctx context.Context, in *pbUser.GetUserProfileRequest) (*pbUser.GetUserProfileResponse, error) {
+	response, err := r.handler.User.GetUserProfile(&ctx, in.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,
