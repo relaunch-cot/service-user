@@ -13,6 +13,7 @@ import (
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/lib-relaunch-cot/repositories/mysql"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -131,7 +132,14 @@ func createToken(userId string) (string, error) {
 func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string, newUser *pbBaseModels.User) error {
 	var User libModels.User
 
-	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE userId = '%s'`, userId)
+	queryValidateUser := fmt.Sprintf(
+		`SELECT u.name,
+       				   u.email,
+       				   u.settings
+					FROM users u 
+					WHERE u.userId = '%s'`,
+		userId,
+	)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
 		return err
@@ -143,13 +151,15 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string
 		return errors.New("user not found")
 	}
 
-	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.Password)
+	var settings []byte
+
+	err = rows.Scan(&User.Name, &User.Email, &settings)
 	if err != nil {
 		return err
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(User.Password), []byte(password))
+	err = json.Unmarshal(settings, &User.Settings)
 	if err != nil {
-		return errors.New("wrong password")
+		return status.Error(codes.Internal, "error unmarshalling settings. Details: "+err.Error())
 	}
 
 	var setParts []string
@@ -170,6 +180,42 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string
 			return errors.New("already exists an user with this email")
 		}
 		setParts = append(setParts, fmt.Sprintf("email = '%s'", newUser.Email))
+	}
+
+	var validateSettings libModels.UserSettings
+
+	if newUser.Settings != nil {
+		if newUser.Settings.Phone != "" && newUser.Settings.Phone != User.Settings.Phone {
+			validateSettings.Phone = newUser.Settings.Phone
+		} else {
+			validateSettings.Phone = User.Settings.Phone
+		}
+		if newUser.Settings.Cpf != "" && newUser.Settings.Cpf != User.Settings.Cpf {
+			validateSettings.Cpf = newUser.Settings.Cpf
+		} else {
+			validateSettings.Cpf = User.Settings.Cpf
+		}
+		if newUser.Settings.DateOfBirth != "" && newUser.Settings.DateOfBirth != User.Settings.DateOfBirth {
+			validateSettings.DateOfBirth = newUser.Settings.DateOfBirth
+		} else {
+			validateSettings.DateOfBirth = User.Settings.DateOfBirth
+		}
+		if newUser.Settings.Biography != "" && newUser.Settings.Biography != User.Settings.Biography {
+			validateSettings.Biography = newUser.Settings.Biography
+		} else {
+			validateSettings.Biography = User.Settings.Biography
+		}
+		if len(newUser.Settings.Skills) != 0 {
+			validateSettings.Skills = newUser.Settings.Skills
+		} else {
+			validateSettings.Skills = User.Settings.Skills
+		}
+
+		validateSettingsJSON, err := json.Marshal(validateSettings)
+		if err != nil {
+			return status.Error(codes.Internal, "error marshalling settings. Details: "+err.Error())
+		}
+		setParts = append(setParts, fmt.Sprintf("settings = '%s'", validateSettingsJSON))
 	}
 
 	if len(setParts) == 0 {
@@ -263,10 +309,15 @@ func (r *mysqlResource) SendPasswordRecoveryEmail(ctx *context.Context, email st
 }
 
 func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*libModels.User, error) {
+	var User libModels.User
+	var settingsJSON []byte
+	var settings libModels.UserSettings
+
 	baseQuery := fmt.Sprintf(
 		`SELECT 
     		u.name, 
-    		u.email
+    		u.email,
+    		u.settings
 		FROM
     		users u
 		WHERE
@@ -284,11 +335,16 @@ func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*li
 		return nil, status.Error(http.StatusNotFound, "user not found")
 	}
 
-	var User libModels.User
-	err = rows.Scan(&User.Name, &User.Email)
+	err = rows.Scan(&User.Name, &User.Email, &settingsJSON)
 	if err != nil {
 		return nil, err
 	}
+
+	err = json.Unmarshal(settingsJSON, &settings)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "error unmarshalling settings. Details: "+err.Error())
+	}
+	User.Settings = settings
 
 	return &User, nil
 }
