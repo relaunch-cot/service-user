@@ -3,9 +3,7 @@ package mysql
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	libModels "github.com/relaunch-cot/lib-relaunch-cot/models"
@@ -37,22 +35,22 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, userId, name, email, pa
 	queryValidation := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidation)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 	defer rows.Close()
 
 	if rows.Next() {
-		return status.Error(http.StatusConflict, "already exists an user with this email")
+		return status.Error(codes.AlreadyExists, "already exists an user with this email")
 	}
 
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(password), 14)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error generating password hash. Details: "+err.Error())
 	}
 
 	settingsJSON, err := json.Marshal(settings)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error marshalling settings. Details: "+err.Error())
 	}
 
 	basequery := fmt.Sprintf(
@@ -66,7 +64,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, userId, name, email, pa
 	)
 	rows, err = mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 
 	defer rows.Close()
@@ -80,22 +78,22 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 	basequery := fmt.Sprintf(`SELECT userId, password FROM users WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 	defer rows.Close()
 
 	if !rows.Next() {
-		return nil, errors.New("user not found")
+		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
 	err = rows.Scan(&User.UserId, &User.Password)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(User.Password), []byte(password))
 	if err != nil {
-		return nil, errors.New("wrong password")
+		return nil, status.Error(codes.InvalidArgument, "wrong password")
 	}
 
 	tokenString, err := createToken(User.UserId)
@@ -121,7 +119,7 @@ func createToken(userId string) (string, error) {
 
 	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
-		return "", err
+		return "", status.Error(codes.Internal, "error signing token. Details: "+err.Error())
 	}
 
 	tokenString = fmt.Sprintf(`Bearer %s`, tokenString)
@@ -142,20 +140,20 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string
 	)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 
 	defer rows.Close()
 
 	if !rows.Next() {
-		return errors.New("user not found")
+		return status.Error(codes.NotFound, "user not found")
 	}
 
 	var settings []byte
 
 	err = rows.Scan(&User.Name, &User.Email, &settings)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
 	}
 	err = json.Unmarshal(settings, &User.Settings)
 	if err != nil {
@@ -172,12 +170,12 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string
 		queryValidation := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, newUser.Email)
 		rows, err := mysql.DB.QueryContext(*ctx, queryValidation)
 		if err != nil {
-			return err
+			return status.Error(codes.Internal, "error with database. Details: "+err.Error())
 		}
 		defer rows.Close()
 
 		if rows.Next() {
-			return errors.New("already exists an user with this email")
+			return status.Error(codes.AlreadyExists, "already exists an user with this email")
 		}
 		setParts = append(setParts, fmt.Sprintf("email = '%s'", newUser.Email))
 	}
@@ -219,7 +217,7 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string
 	}
 
 	if len(setParts) == 0 {
-		return errors.New("no fields to update")
+		return status.Error(codes.NotFound, "no fields to update")
 	}
 
 	setClause := setParts[0]
@@ -231,7 +229,7 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string
 
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 
 	return nil
@@ -240,13 +238,13 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string
 func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, userId, newPassword string) error {
 	newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 14)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error generating password hash. Details: "+err.Error())
 	}
 
 	updateQuery := fmt.Sprintf(`UPDATE users SET password = '%s' WHERE userId = '%d'`, newHashedPassword, userId)
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 
 	return nil
@@ -259,28 +257,28 @@ func (r *mysqlResource) DeleteUser(ctx *context.Context, email, password string)
 
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 
 	defer rows.Close()
 	if !rows.Next() {
-		return errors.New("user not found")
+		return status.Error(codes.NotFound, "user not found")
 	}
 
 	err = rows.Scan(&User.UserId, &User.Password)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(User.Password), []byte(password))
 	if err != nil {
-		return errors.New("wrong password")
+		return status.Error(codes.InvalidArgument, "wrong password")
 	}
 
 	deleteQuery := fmt.Sprintf(`DELETE FROM users WHERE userId = '%s'`, User.UserId)
 	_, err = mysql.DB.ExecContext(*ctx, deleteQuery)
 	if err != nil {
-		return err
+		return status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 
 	return nil
@@ -292,17 +290,17 @@ func (r *mysqlResource) SendPasswordRecoveryEmail(ctx *context.Context, email st
 	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s' LIMIT 1`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 
 	defer rows.Close()
 	if !rows.Next() {
-		return nil, errors.New("user not found")
+		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
 	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.Password)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
 	}
 
 	return &User.Name, nil
@@ -327,12 +325,12 @@ func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*li
 
 	rows, err := mysql.DB.QueryContext(*ctx, baseQuery)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, "error with database. Details: "+err.Error())
 	}
 
 	defer rows.Close()
 	if !rows.Next() {
-		return nil, status.Error(http.StatusNotFound, "user not found")
+		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
 	err = rows.Scan(&User.Name, &User.Email, &settingsJSON)

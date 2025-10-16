@@ -17,6 +17,8 @@ import (
 	"github.com/relaunch-cot/service-user/resource/transformer"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type IUserHandler interface {
@@ -85,7 +87,7 @@ func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string)
 	var reportData libModels.ReportData
 	err := json.Unmarshal([]byte(jsonData), &reportData)
 	if err != nil {
-		return nil, fmt.Errorf("erro ao fazer parse do JSON: %v", err)
+		return nil, status.Error(codes.Internal, "error unmarshalling report data. Details: "+err.Error())
 	}
 
 	pdf := gofpdf.New("P", "mm", "A4", "")
@@ -139,7 +141,7 @@ func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string)
 	var buf bytes.Buffer
 	err = pdf.Output(&buf)
 	if err != nil {
-		return nil, err
+		return nil, status.Error(codes.Internal, "error generating report. Details: "+err.Error())
 	}
 
 	return buf.Bytes(), nil
@@ -171,11 +173,11 @@ func (r *resource) SendPasswordRecoveryEmail(ctx *context.Context, email, recove
 	client := sendgrid.NewSendClient(config.SENDGRID_API_KEY)
 	response, err := client.Send(message)
 	if err != nil {
-		return fmt.Errorf("erro ao enviar email: %w", err)
+		return status.Error(codes.Internal, "error sending email. Details: "+err.Error())
 	}
 
 	if response.StatusCode >= 400 {
-		return fmt.Errorf("erro no envio do email: %s", response.Body)
+		return status.Error(codes.Code(response.StatusCode), "error sending email. Details: "+response.Body)
 	}
 
 	return nil
