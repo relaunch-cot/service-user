@@ -6,7 +6,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang/protobuf v1.5.4
 	github.com/jung-kurt/gofpdf v1.16.2
-	github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251015013529-f2424b563661
+	github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251015190446-f498b567f26d
 	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
 	golang.org/x/crypto v0.36.0
 	google.golang.org/grpc v1.73.0
@@ -15,6 +15,7 @@ require (
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/go-sql-driver/mysql v1.9.3 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/sendgrid/rest v2.6.9+incompatible // indirect
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect

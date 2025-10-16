@@ -7,7 +7,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jung-kurt/gofpdf"
+	libModels "github.com/relaunch-cot/lib-relaunch-cot/models"
+	"github.com/relaunch-cot/lib-relaunch-cot/proto/base_models"
 	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/service-user/config"
 	"github.com/relaunch-cot/service-user/repositories"
@@ -16,31 +19,25 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-type ReportData struct {
-	Title    string     `json:"title"`
-	Subtitle string     `json:"subtitle,omitempty"`
-	Headers  []string   `json:"headers"`
-	Rows     [][]string `json:"rows"`
-	Footer   string     `json:"footer,omitempty"`
-}
-
 type IUserHandler interface {
-	CreateUser(ctx *context.Context, name, email, password string) error
+	CreateUser(ctx *context.Context, name, email, password, userType string, settings *base_models.UserSettings) error
 	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
 	UpdateUser(ctx *context.Context, in *pb.UpdateUserRequest) error
 	UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPasswordRequest) error
 	DeleteUser(ctx *context.Context, in *pb.DeleteUserRequest) error
 	GenerateReportFromJSON(ctx *context.Context, jsonData string) ([]byte, error)
 	SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error
-	GetUserProfile(ctx *context.Context, userId int64) (*pb.GetUserProfileResponse, error)
+	GetUserProfile(ctx *context.Context, userId string) (*pb.GetUserProfileResponse, error)
 }
 
 type resource struct {
 	repositories *repositories.Repositories
 }
 
-func (r *resource) CreateUser(ctx *context.Context, name, email, password string) error {
-	err := r.repositories.Mysql.CreateUser(ctx, name, email, password)
+func (r *resource) CreateUser(ctx *context.Context, name, email, password, userType string, settings *base_models.UserSettings) error {
+	userId := uuid.New()
+
+	err := r.repositories.Mysql.CreateUser(ctx, userId.String(), name, email, password, userType, settings)
 	if err != nil {
 		return err
 	}
@@ -85,7 +82,7 @@ func (r *resource) DeleteUser(ctx *context.Context, in *pb.DeleteUserRequest) er
 }
 
 func (r *resource) GenerateReportFromJSON(ctx *context.Context, jsonData string) ([]byte, error) {
-	var reportData ReportData
+	var reportData libModels.ReportData
 	err := json.Unmarshal([]byte(jsonData), &reportData)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao fazer parse do JSON: %v", err)
@@ -184,7 +181,7 @@ func (r *resource) SendPasswordRecoveryEmail(ctx *context.Context, email, recove
 	return nil
 }
 
-func (r *resource) GetUserProfile(ctx *context.Context, userId int64) (*pb.GetUserProfileResponse, error) {
+func (r *resource) GetUserProfile(ctx *context.Context, userId string) (*pb.GetUserProfileResponse, error) {
 	mysqlResponse, err := r.repositories.Mysql.GetUserProfile(ctx, userId)
 	if err != nil {
 		return nil, err

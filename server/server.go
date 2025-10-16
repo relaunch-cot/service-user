@@ -14,7 +14,7 @@ type userResource struct {
 }
 
 func (r *userResource) CreateUser(ctx context.Context, in *pbUser.CreateUserRequest) (*empty.Empty, error) {
-	err := r.handler.User.CreateUser(&ctx, in.Name, in.Email, in.Password)
+	err := r.handler.User.CreateUser(&ctx, in.Name, in.Email, in.Password, in.Type, in.Settings)
 	if err != nil {
 		return nil, err
 	}

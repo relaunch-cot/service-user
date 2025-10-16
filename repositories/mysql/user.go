@@ -2,6 +2,7 @@ package mysql
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -22,16 +23,16 @@ type mysqlResource struct {
 }
 
 type IMySqlUser interface {
-	CreateUser(ctx *context.Context, name, email, password string) error
+	CreateUser(ctx *context.Context, userId, name, email, password, userType string, settings *pbBaseModels.UserSettings) error
 	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
-	UpdateUser(ctx *context.Context, password string, userId int64, newUser *pbBaseModels.User) error
-	UpdateUserPassword(ctx *context.Context, userId int64, newPassword string) error
+	UpdateUser(ctx *context.Context, password, userId string, newUser *pbBaseModels.User) error
+	UpdateUserPassword(ctx *context.Context, userId string, newPassword string) error
 	DeleteUser(ctx *context.Context, email, password string) error
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
-	GetUserProfile(ctx *context.Context, userId int64) (*libModels.User, error)
+	GetUserProfile(ctx *context.Context, userId string) (*libModels.User, error)
 }
 
-func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password string) error {
+func (r *mysqlResource) CreateUser(ctx *context.Context, userId, name, email, password, userType string, settings *pbBaseModels.UserSettings) error {
 	queryValidation := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidation)
 	if err != nil {
@@ -40,7 +41,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password s
 	defer rows.Close()
 
 	if rows.Next() {
-		return errors.New("already exists an user with this email")
+		return status.Error(http.StatusConflict, "already exists an user with this email")
 	}
 
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(password), 14)
@@ -48,11 +49,19 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password s
 		return err
 	}
 
+	settingsJSON, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+
 	basequery := fmt.Sprintf(
-		"INSERT INTO users (name, email, password) VALUES('%s', '%s', '%s')",
+		"INSERT INTO users (userId, name, email, password, settings, type) VALUES('%s', '%s', '%s', '%s', '%s', '%s')",
+		userId,
 		name,
 		email,
 		hashPassword,
+		settingsJSON,
+		userType,
 	)
 	rows, err = mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
@@ -67,7 +76,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, name, email, password s
 func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error) {
 	var User libModels.User
 
-	basequery := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
+	basequery := fmt.Sprintf(`SELECT userId, password FROM users WHERE email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
 		return nil, err
@@ -78,12 +87,12 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 		return nil, errors.New("user not found")
 	}
 
-	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.HashedPassword)
+	err = rows.Scan(&User.UserId, &User.Password)
 	if err != nil {
 		return nil, err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(User.Password), []byte(password))
 	if err != nil {
 		return nil, errors.New("wrong password")
 	}
@@ -102,7 +111,7 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 
 var secretKey = []byte("secret-key")
 
-func createToken(userId int) (string, error) {
+func createToken(userId string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
 			"userId": userId,
@@ -119,10 +128,10 @@ func createToken(userId int) (string, error) {
 	return tokenString, nil
 }
 
-func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId int64, newUser *pbBaseModels.User) error {
+func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string, newUser *pbBaseModels.User) error {
 	var User libModels.User
 
-	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE userId = '%d'`, userId)
+	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE userId = '%s'`, userId)
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
 		return err
@@ -134,11 +143,11 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId
 		return errors.New("user not found")
 	}
 
-	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.HashedPassword)
+	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.Password)
 	if err != nil {
 		return err
 	}
-	err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(User.Password), []byte(password))
 	if err != nil {
 		return errors.New("wrong password")
 	}
@@ -172,7 +181,7 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId
 		setClause += ", " + setParts[i]
 	}
 
-	updateQuery := fmt.Sprintf(`UPDATE users SET %s WHERE userId = '%d'`, setClause, userId)
+	updateQuery := fmt.Sprintf(`UPDATE users SET %s WHERE userId = '%s'`, setClause, userId)
 
 	_, err = mysql.DB.ExecContext(*ctx, updateQuery)
 	if err != nil {
@@ -182,7 +191,7 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, password string, userId
 	return nil
 }
 
-func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, userId int64, newPassword string) error {
+func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, userId, newPassword string) error {
 	newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), 14)
 	if err != nil {
 		return err
@@ -200,7 +209,7 @@ func (r *mysqlResource) UpdateUserPassword(ctx *context.Context, userId int64, n
 func (r *mysqlResource) DeleteUser(ctx *context.Context, email, password string) error {
 	var User libModels.User
 
-	queryValidateUser := fmt.Sprintf(`SELECT * FROM users WHERE email = '%s'`, email)
+	queryValidateUser := fmt.Sprintf(`SELECT userId, password FROM users WHERE email = '%s'`, email)
 
 	rows, err := mysql.DB.QueryContext(*ctx, queryValidateUser)
 	if err != nil {
@@ -212,17 +221,17 @@ func (r *mysqlResource) DeleteUser(ctx *context.Context, email, password string)
 		return errors.New("user not found")
 	}
 
-	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.HashedPassword)
+	err = rows.Scan(&User.UserId, &User.Password)
 	if err != nil {
 		return err
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(User.HashedPassword), []byte(password))
+	err = bcrypt.CompareHashAndPassword([]byte(User.Password), []byte(password))
 	if err != nil {
 		return errors.New("wrong password")
 	}
 
-	deleteQuery := fmt.Sprintf(`DELETE FROM users WHERE userId = '%d'`, User.UserId)
+	deleteQuery := fmt.Sprintf(`DELETE FROM users WHERE userId = '%s'`, User.UserId)
 	_, err = mysql.DB.ExecContext(*ctx, deleteQuery)
 	if err != nil {
 		return err
@@ -245,7 +254,7 @@ func (r *mysqlResource) SendPasswordRecoveryEmail(ctx *context.Context, email st
 		return nil, errors.New("user not found")
 	}
 
-	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.HashedPassword)
+	err = rows.Scan(&User.UserId, &User.Name, &User.Email, &User.Password)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +262,7 @@ func (r *mysqlResource) SendPasswordRecoveryEmail(ctx *context.Context, email st
 	return &User.Name, nil
 }
 
-func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId int64) (*libModels.User, error) {
+func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*libModels.User, error) {
 	baseQuery := fmt.Sprintf(
 		`SELECT 
     		u.name, 
@@ -261,7 +270,7 @@ func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId int64) (*lib
 		FROM
     		users u
 		WHERE
-    		u.userId = %d`,
+    		u.userId = '%s'`,
 		userId,
 	)
 
