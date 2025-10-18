@@ -87,6 +87,15 @@ func (r *userResource) GetUserProfile(ctx context.Context, in *pbUser.GetUserPro
 	return response, nil
 }
 
+func (r *userResource) GetUserType(ctx context.Context, in *pbUser.GetUserTypeRequest) (*pbUser.GetUserTypeResponse, error) {
+	response, err := r.handler.User.GetUserType(&ctx, in.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,

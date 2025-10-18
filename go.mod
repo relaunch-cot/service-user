@@ -6,7 +6,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/golang/protobuf v1.5.4
 	github.com/jung-kurt/gofpdf v1.16.2
-	github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251015220556-784b421581b7
+	github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251018144914-d448e3871dc4
 	github.com/sendgrid/sendgrid-go v3.16.1+incompatible
 	golang.org/x/crypto v0.36.0
 	google.golang.org/grpc v1.73.0

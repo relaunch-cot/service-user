@@ -30,6 +30,7 @@ type IUserHandler interface {
 	GenerateReportFromJSON(ctx *context.Context, jsonData string) ([]byte, error)
 	SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error
 	GetUserProfile(ctx *context.Context, userId string) (*pb.GetUserProfileResponse, error)
+	GetUserType(ctx *context.Context, userId string) (*pb.GetUserTypeResponse, error)
 }
 
 type resource struct {
@@ -199,6 +200,19 @@ func (r *resource) GetUserProfile(ctx *context.Context, userId string) (*pb.GetU
 	}
 
 	return getUserProfileResponse, nil
+}
+
+func (r *resource) GetUserType(ctx *context.Context, userId string) (*pb.GetUserTypeResponse, error) {
+	mysqlResponse, err := r.repositories.Mysql.GetUserType(ctx, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	getUserTypeResponse := &pb.GetUserTypeResponse{
+		UserType: *mysqlResponse,
+	}
+
+	return getUserTypeResponse, nil
 }
 
 func NewUserHandler(repositories *repositories.Repositories) IUserHandler {

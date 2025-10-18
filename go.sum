@@ -30,6 +30,8 @@ github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251015190446-f498b567f26d h1:1
 github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251015190446-f498b567f26d/go.mod h1:AnBqPVRdO0Fr/Cscv1OszBA5hDJCM4LylAvj39riXws=
 github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251015220556-784b421581b7 h1:ksgj4l+p/KNc6v5jPcJT5jUEEEf5iXovT+MVbctCN4Y=
 github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251015220556-784b421581b7/go.mod h1:AnBqPVRdO0Fr/Cscv1OszBA5hDJCM4LylAvj39riXws=
+github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251018144914-d448e3871dc4 h1:qUb6USTbVTdWugiaZfXMYMfOUR88pNxw8WpgY9rxWUA=
+github.com/relaunch-cot/lib-relaunch-cot v0.0.0-20251018144914-d448e3871dc4/go.mod h1:AnBqPVRdO0Fr/Cscv1OszBA5hDJCM4LylAvj39riXws=
 github.com/ruudk/golang-pdf417 v0.0.0-20181029194003-1af4ab5afa58/go.mod h1:6lfFZQK844Gfx8o5WFuvpxWRwnSoipWe/p622j1v06w=
 github.com/sendgrid/rest v2.6.9+incompatible h1:1EyIcsNdn9KIisLW50MKwmSRSK+ekueiEMJ7NEoxJo0=
 github.com/sendgrid/rest v2.6.9+incompatible/go.mod h1:kXX7q3jZtJXK5c5qK83bSGMdV6tsOE70KbHoqJls4lE=

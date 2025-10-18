@@ -29,6 +29,7 @@ type IMySqlUser interface {
 	DeleteUser(ctx *context.Context, email, password string) error
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
 	GetUserProfile(ctx *context.Context, userId string) (*libModels.User, error)
+	GetUserType(ctx *context.Context, userId string) (*string, error)
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, userId, name, email, password, userType string, settings *pbBaseModels.UserSettings) error {
@@ -345,6 +346,27 @@ func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*li
 	User.Settings = settings
 
 	return &User, nil
+}
+
+func (r *mysqlResource) GetUserType(ctx *context.Context, userId string) (*string, error) {
+	rows, err := mysql.DB.QueryContext(*ctx, fmt.Sprintf("SELECT u.type FROM users u WHERE u.userId = '%s'", userId))
+	if err != nil {
+		return nil, status.Error(codes.Internal, "error with database. Details: "+err.Error())
+	}
+
+	defer rows.Close()
+
+	if !rows.Next() {
+		return nil, status.Error(codes.NotFound, "user not found")
+	}
+
+	var userType string
+	err = rows.Scan(&userType)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
+	}
+
+	return &userType, nil
 }
 
 func NewMysqlRepository(client *mysql.Client) IMySqlUser {
