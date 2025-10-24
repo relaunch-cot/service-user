@@ -4,17 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	libModels "github.com/relaunch-cot/lib-relaunch-cot/models"
 	pbBaseModels "github.com/relaunch-cot/lib-relaunch-cot/proto/base_models"
-	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/lib-relaunch-cot/repositories/mysql"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 type mysqlResource struct {
@@ -23,7 +19,7 @@ type mysqlResource struct {
 
 type IMySqlUser interface {
 	CreateUser(ctx *context.Context, userId, name, email, password, userType string, settings *pbBaseModels.UserSettings) error
-	LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error)
+	LoginUser(ctx *context.Context, email, password string) (*libModels.User, error)
 	UpdateUser(ctx *context.Context, password, userId string, newUser *pbBaseModels.User) error
 	UpdateUserPassword(ctx *context.Context, userId string, newPassword string) error
 	DeleteUser(ctx *context.Context, email, password string) error
@@ -73,7 +69,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, userId, name, email, pa
 	return nil
 }
 
-func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error) {
+func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (*libModels.User, error) {
 	var User libModels.User
 
 	basequery := fmt.Sprintf(`SELECT userId, password FROM users WHERE email = '%s'`, email)
@@ -97,35 +93,7 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 		return nil, status.Error(codes.InvalidArgument, "wrong password")
 	}
 
-	tokenString, err := createToken(User.UserId)
-	if err != nil {
-		return nil, err
-	}
-
-	loginUserResponse := &pb.LoginUserResponse{
-		Token: tokenString,
-	}
-
-	return loginUserResponse, nil
-}
-
-var secretKey = []byte("secret-key")
-
-func createToken(userId string) (string, error) {
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"userId": userId,
-			"exp":    time.Now().Add(time.Hour * 24).Unix(),
-		})
-
-	tokenString, err := token.SignedString(secretKey)
-	if err != nil {
-		return "", status.Error(codes.Internal, "error signing token. Details: "+err.Error())
-	}
-
-	tokenString = fmt.Sprintf(`Bearer %s`, tokenString)
-
-	return tokenString, nil
+	return &User, nil
 }
 
 func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string, newUser *pbBaseModels.User) error {

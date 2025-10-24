@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/jung-kurt/gofpdf"
 	libModels "github.com/relaunch-cot/lib-relaunch-cot/models"
@@ -49,9 +50,18 @@ func (r *resource) CreateUser(ctx *context.Context, name, email, password, userT
 }
 
 func (r *resource) LoginUser(ctx *context.Context, email, password string) (*pb.LoginUserResponse, error) {
-	loginUserResponse, err := r.repositories.Mysql.LoginUser(ctx, email, password)
+	user, err := r.repositories.Mysql.LoginUser(ctx, email, password)
 	if err != nil {
 		return nil, err
+	}
+
+	tokenString, err := createToken(user.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	loginUserResponse := &pb.LoginUserResponse{
+		Token: tokenString,
 	}
 
 	return loginUserResponse, nil
@@ -213,6 +223,25 @@ func (r *resource) GetUserType(ctx *context.Context, userId string) (*pb.GetUser
 	}
 
 	return getUserTypeResponse, nil
+}
+
+var secretKey = []byte("secret-key")
+
+func createToken(userId string) (string, error) {
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		jwt.MapClaims{
+			"userId": userId,
+			"exp":    time.Now().Add(time.Hour * 24).Unix(),
+		})
+
+	tokenString, err := token.SignedString(secretKey)
+	if err != nil {
+		return "", status.Error(codes.Internal, "error signing token. Details: "+err.Error())
+	}
+
+	tokenString = fmt.Sprintf(`Bearer %s`, tokenString)
+
+	return tokenString, nil
 }
 
 func NewUserHandler(repositories *repositories.Repositories) IUserHandler {
