@@ -16,4 +16,6 @@ var (
 	SENDGRID_API_KEY = os.Getenv("SENDGRID_API_KEY")
 	EMAIL            = os.Getenv("EMAIL")
 	NAME             = os.Getenv("NAME")
+
+	JWT_SECRET = os.Getenv("JWT_SECRET")
 )
