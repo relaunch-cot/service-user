@@ -23,68 +23,44 @@
     - MYSQL_USER: (usuario do MySql)
     - MYSQL_PASS: (senha do MySql)
     - MYSQL_DBNAME: (nome do banco de dados que receberá as requisições)
+    - SENDGRID_API_KEY (chave de api do sendgrid)
+    - EMAIL (email do usuário que receberá a mensagem para recuperação de senha)
+    - NAME (nome do usuário que aparecerá no email de recuperação de senha)
+    - JWT_SECRET (secret key utilizada na criação do token jwt do usuário ao fazer login)
 - Rodar 'go build main.go' no terminal
 - Rodar 'go run main.go' no terminal
 
-## Funcionalidade de Relatórios em PDF via gRPC
-
-Este microserviço expõe métodos gRPC para geração de relatórios em PDF que devem ser chamados pelo BFF.
-
-### Métodos gRPC Disponíveis
-
-#### 1. GenerateReportFromJSON  
-- **Input**: `GenerateReportRequest` (JSON string)
-- **Output**: `GenerateReportResponse` (bytes do PDF)
-- **Descrição**: Gera PDF personalizado baseado em dados JSON
-
-### Estruturas para o arquivo .proto
-
-```proto
-message GenerateReportRequest {
-  string json_data = 1;
-}
-
-message GenerateReportResponse {
-  bytes pdf_data = 1;
-}
-
-service UserService {
-  // Métodos existentes...
-  rpc ExportUserReportPDF(google.protobuf.Empty) returns (GenerateReportResponse);
-  rpc GenerateReportFromJSON(GenerateReportRequest) returns (GenerateReportResponse);
-}
-```
-
-### Formato JSON para Relatórios Personalizados
-
-```json
-{
-  "title": "Título do Relatório",
-  "subtitle": "Subtítulo (opcional)",
-  "headers": ["Coluna 1", "Coluna 2", "Coluna 3"],
-  "rows": [
-    ["Dados 1", "Dados 2", "Dados 3"],
-    ["Dados 1", "Dados 2", "Dados 3"]
-  ],
-  "footer": "Rodapé (opcional)"
-}
-```
-
-### Implementação no BFF
-
-Veja o arquivo `docs/grpc_pdf_integration.md` para exemplos completos de como implementar no BFF.
-
-## Funcionalidades
-### Backend/Frontend
+## Funcionalidades implementadas
 - [x]  Permitir login do usuário
 - [x]  Permitir cadastro do usuário
 - [x]  Usuário redefinir  a senha
 - [x]  Permitir deletar usuário
-- [x]  Permitir atualizar email e nome
-- [ ]  O usuário deve poder personalizar as configurações do perfil
+- [x]  O usuário deve poder personalizar as configurações do perfil
+- [x]  Buscar informações de perfil do usuario
 - [x]  Deve ser possível exportar relatórios em PDF.
-- [ ]  O freelancer define o tempo para o desenvolvimento da aplicação
-
-### Frontend
+- [x]  Enviar Email de recuperação de senha
+- [x]  Usuário deletar sua conta
 - [x]  Usuário fazer logout da plataforma
-- [ ]  O usuário deve conseguir selecionar o tema da plataforma
+- [x]  Criar um novo chat entre usuarios
+- [x]  Enviar mensagens no chat entre usuários
+- [x]  Buscar todas as mensagens de um chat específico
+- [x]  Buscar todos os chats de um usuário
+- [x]  Criar um novo projeto (usuários que sejam clientes)
+- [x]  Buscar um projeto específico
+- [x]  Buscar todos os projetos de um usuário
+- [x]  Adicionar freelancer a um projeto
+- [x]  Remover freelancer de um projeto
+- [x]  Listar todos os projetos que estejam sem um freelancer desenvolvendo o mesmo, ou seja, disponíveis para desenvolvimento
+- [x]  Enviar norificações para o usuário (seja de uma mensagem nova, seja de solicitação para participar de um projeto...)
+- [x]  Buscar informações de uma notificação específica
+- [x]  Buscar todas as notificações de um usuário
+
+## Padrões requisitados
+- padrão singleton aplicado
+### Padrões GoF aplicados além do singleton:
+- Adapter
+- Facade
+- Strategy
+- Factory
+- Iterator
+### além disso o projeto também aplica padrões de arquitetura (Repository, Dependency Injection) que não são parte dos GoF clássicos, mas complementam a estrutura.
