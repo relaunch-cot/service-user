@@ -77,7 +77,7 @@ func (r *resource) UpdateUserPassword(ctx *context.Context, in *pb.UpdateUserPas
 }
 
 func (r *resource) UpdateUser(ctx *context.Context, in *pb.UpdateUserRequest) error {
-	err := r.repositories.Mysql.UpdateUser(ctx, in.Password, in.UserId, in.NewUser)
+	err := r.repositories.Mysql.UpdateUser(ctx, in.UserId, in.NewUser)
 	if err != nil {
 		return err
 	}

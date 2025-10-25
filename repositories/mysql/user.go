@@ -20,7 +20,7 @@ type mysqlResource struct {
 type IMySqlUser interface {
 	CreateUser(ctx *context.Context, userId, name, email, password, userType string, settings *pbBaseModels.UserSettings) error
 	LoginUser(ctx *context.Context, email, password string) (*libModels.User, error)
-	UpdateUser(ctx *context.Context, password, userId string, newUser *pbBaseModels.User) error
+	UpdateUser(ctx *context.Context, userId string, newUser *pbBaseModels.User) error
 	UpdateUserPassword(ctx *context.Context, userId string, newPassword string) error
 	DeleteUser(ctx *context.Context, email, password string) error
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
@@ -96,7 +96,7 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 	return &User, nil
 }
 
-func (r *mysqlResource) UpdateUser(ctx *context.Context, password, userId string, newUser *pbBaseModels.User) error {
+func (r *mysqlResource) UpdateUser(ctx *context.Context, userId string, newUser *pbBaseModels.User) error {
 	var User libModels.User
 
 	queryValidateUser := fmt.Sprintf(
