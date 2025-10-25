@@ -225,6 +225,8 @@ func (r *resource) GetUserType(ctx *context.Context, userId string) (*pb.GetUser
 	return getUserTypeResponse, nil
 }
 
+var secretKey = []byte(config.JWT_SECRET)
+
 func createToken(userId string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
@@ -232,7 +234,7 @@ func createToken(userId string) (string, error) {
 			"exp":    time.Now().Add(time.Hour * 24).Unix(),
 		})
 
-	tokenString, err := token.SignedString(config.JWT_SECRET)
+	tokenString, err := token.SignedString(secretKey)
 	if err != nil {
 		return "", status.Error(codes.Internal, "error signing token. Details: "+err.Error())
 	}
