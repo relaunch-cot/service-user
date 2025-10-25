@@ -31,7 +31,6 @@ type IUserHandler interface {
 	GenerateReportFromJSON(ctx *context.Context, jsonData string) ([]byte, error)
 	SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error
 	GetUserProfile(ctx *context.Context, userId string) (*pb.GetUserProfileResponse, error)
-	GetUserType(ctx *context.Context, userId string) (*pb.GetUserTypeResponse, error)
 }
 
 type resource struct {
@@ -55,7 +54,7 @@ func (r *resource) LoginUser(ctx *context.Context, email, password string) (*pb.
 		return nil, err
 	}
 
-	tokenString, err := createToken(user.UserId)
+	tokenString, err := createToken(user.UserId, user.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -212,26 +211,14 @@ func (r *resource) GetUserProfile(ctx *context.Context, userId string) (*pb.GetU
 	return getUserProfileResponse, nil
 }
 
-func (r *resource) GetUserType(ctx *context.Context, userId string) (*pb.GetUserTypeResponse, error) {
-	mysqlResponse, err := r.repositories.Mysql.GetUserType(ctx, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	getUserTypeResponse := &pb.GetUserTypeResponse{
-		UserType: *mysqlResponse,
-	}
-
-	return getUserTypeResponse, nil
-}
-
 var secretKey = []byte(config.JWT_SECRET)
 
-func createToken(userId string) (string, error) {
+func createToken(userId, userType string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"userId": userId,
-			"exp":    time.Now().Add(time.Hour * 24).Unix(),
+			"userId":   userId,
+			"userType": userType,
+			"exp":      time.Now().Add(time.Hour * 24).Unix(),
 		})
 
 	tokenString, err := token.SignedString(secretKey)

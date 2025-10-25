@@ -25,7 +25,6 @@ type IMySqlUser interface {
 	DeleteUser(ctx *context.Context, email, password string) error
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
 	GetUserProfile(ctx *context.Context, userId string) (*libModels.User, error)
-	GetUserType(ctx *context.Context, userId string) (*string, error)
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, userId, name, email, password, userType string, settings *pbBaseModels.UserSettings) error {
@@ -72,7 +71,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, userId, name, email, pa
 func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (*libModels.User, error) {
 	var User libModels.User
 
-	basequery := fmt.Sprintf(`SELECT userId, password FROM users WHERE email = '%s'`, email)
+	basequery := fmt.Sprintf(`SELECT u.userId, u.password, u.type FROM users u WHERE u.email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "error with database. Details: "+err.Error())
@@ -83,7 +82,7 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	err = rows.Scan(&User.UserId, &User.Password)
+	err = rows.Scan(&User.UserId, &User.Password, &User.Type)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
 	}
@@ -314,27 +313,6 @@ func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*li
 	User.Settings = settings
 
 	return &User, nil
-}
-
-func (r *mysqlResource) GetUserType(ctx *context.Context, userId string) (*string, error) {
-	rows, err := mysql.DB.QueryContext(*ctx, fmt.Sprintf("SELECT u.type FROM users u WHERE u.userId = '%s'", userId))
-	if err != nil {
-		return nil, status.Error(codes.Internal, "error with database. Details: "+err.Error())
-	}
-
-	defer rows.Close()
-
-	if !rows.Next() {
-		return nil, status.Error(codes.NotFound, "user not found")
-	}
-
-	var userType string
-	err = rows.Scan(&userType)
-	if err != nil {
-		return nil, status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
-	}
-
-	return &userType, nil
 }
 
 func NewMysqlRepository(client *mysql.Client) IMySqlUser {
