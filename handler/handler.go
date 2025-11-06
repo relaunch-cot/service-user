@@ -54,7 +54,7 @@ func (r *resource) LoginUser(ctx *context.Context, email, password string) (*pb.
 		return nil, err
 	}
 
-	tokenString, err := createToken(user.UserId, user.Type)
+	tokenString, err := createToken(user.UserId, user.Type, user.Name, user.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -213,12 +213,14 @@ func (r *resource) GetUserProfile(ctx *context.Context, userId string) (*pb.GetU
 
 var secretKey = []byte(config.JWT_SECRET)
 
-func createToken(userId, userType string) (string, error) {
+func createToken(userId, userType, name, email string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"userId":   userId,
-			"userType": userType,
-			"exp":      time.Now().Add(time.Hour * 24).Unix(),
+			"userId":    userId,
+			"userType":  userType,
+			"userName":  name,
+			"userEmail": email,
+			"exp":       time.Now().Add(time.Hour * 24).Unix(),
 		})
 
 	tokenString, err := token.SignedString(secretKey)
