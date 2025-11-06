@@ -71,7 +71,7 @@ func (r *mysqlResource) CreateUser(ctx *context.Context, userId, name, email, pa
 func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) (*libModels.User, error) {
 	var User libModels.User
 
-	basequery := fmt.Sprintf(`SELECT u.userId, u.password, u.type FROM users u WHERE u.email = '%s'`, email)
+	basequery := fmt.Sprintf(`SELECT u.userId, u.password, u.type, u.name FROM users u WHERE u.email = '%s'`, email)
 	rows, err := mysql.DB.QueryContext(*ctx, basequery)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "error with database. Details: "+err.Error())
@@ -82,7 +82,7 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	err = rows.Scan(&User.UserId, &User.Password, &User.Type)
+	err = rows.Scan(&User.UserId, &User.Password, &User.Type, &User.Name)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
 	}

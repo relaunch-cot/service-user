@@ -54,7 +54,7 @@ func (r *resource) LoginUser(ctx *context.Context, email, password string) (*pb.
 		return nil, err
 	}
 
-	tokenString, err := createToken(user.UserId, user.Type, user.Name, user.Email)
+	tokenString, err := createToken(user.UserId, user.Type, user.Name, email)
 	if err != nil {
 		return nil, err
 	}
