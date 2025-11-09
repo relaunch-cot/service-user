@@ -311,6 +311,7 @@ func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*li
 		return nil, status.Error(codes.Internal, "error unmarshalling settings. Details: "+err.Error())
 	}
 	User.Settings = settings
+	User.UserId = userId
 
 	return &User, nil
 }
