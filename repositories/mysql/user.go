@@ -98,6 +98,9 @@ func (r *mysqlResource) LoginUser(ctx *context.Context, email, password string) 
 func (r *mysqlResource) UpdateUser(ctx *context.Context, userId string, newUser *pbBaseModels.User) error {
 	var User libModels.User
 
+	if newUser == nil {
+		return status.Error(codes.NotFound, "no fields to update")
+	}
 	queryValidateUser := fmt.Sprintf(
 		`SELECT u.name,
        				   u.email,
@@ -182,10 +185,6 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, userId string, newUser 
 			return status.Error(codes.Internal, "error marshalling settings. Details: "+err.Error())
 		}
 		setParts = append(setParts, fmt.Sprintf("settings = '%s'", validateSettingsJSON))
-	}
-
-	if len(setParts) == 0 {
-		return status.Error(codes.NotFound, "no fields to update")
 	}
 
 	setClause := setParts[0]
