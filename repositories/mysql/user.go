@@ -104,6 +104,7 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, userId string, newUser 
 	queryValidateUser := fmt.Sprintf(
 		`SELECT u.name,
        				   u.email,
+       				   IFNULL(u.urlImageUser, ""),
        				   u.settings
 					FROM users u 
 					WHERE u.userId = '%s'`,
@@ -122,7 +123,7 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, userId string, newUser 
 
 	var settings []byte
 
-	err = rows.Scan(&User.Name, &User.Email, &settings)
+	err = rows.Scan(&User.Name, &User.Email, &User.UrlImageUser, &settings)
 	if err != nil {
 		return status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
 	}
@@ -149,6 +150,10 @@ func (r *mysqlResource) UpdateUser(ctx *context.Context, userId string, newUser 
 			return status.Error(codes.AlreadyExists, "already exists an user with this email")
 		}
 		setParts = append(setParts, fmt.Sprintf("email = '%s'", newUser.Email))
+	}
+
+	if newUser.UrlImageUser != "" && newUser.UrlImageUser != User.UrlImageUser {
+		setParts = append(setParts, fmt.Sprintf("urlImageUser = '%s'", newUser.UrlImageUser))
 	}
 
 	var validateSettings libModels.UserSettings
@@ -282,6 +287,7 @@ func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*li
 		`SELECT 
     		u.name, 
     		u.email,
+    		IFNULL(u.UrlImageUser, ""),
     		u.settings
 		FROM
     		users u
@@ -300,7 +306,7 @@ func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*li
 		return nil, status.Error(codes.NotFound, "user not found")
 	}
 
-	err = rows.Scan(&User.Name, &User.Email, &settingsJSON)
+	err = rows.Scan(&User.Name, &User.Email, &User.UrlImageUser, &settingsJSON)
 	if err != nil {
 		return nil, err
 	}
