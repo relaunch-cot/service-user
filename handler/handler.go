@@ -31,6 +31,7 @@ type IUserHandler interface {
 	GenerateReportFromJSON(ctx *context.Context, jsonData string) ([]byte, error)
 	SendPasswordRecoveryEmail(ctx *context.Context, email, recoveryLink string) error
 	GetUserProfile(ctx *context.Context, userId string) (*pb.GetUserProfileResponse, error)
+	GetUserByName(ctx *context.Context, name string) (*pb.GetUserByNameResponse, error)
 }
 
 type resource struct {
@@ -209,6 +210,19 @@ func (r *resource) GetUserProfile(ctx *context.Context, userId string) (*pb.GetU
 	}
 
 	return getUserProfileResponse, nil
+}
+
+func (r *resource) GetUserByName(ctx *context.Context, name string) (*pb.GetUserByNameResponse, error) {
+	mysqlResponse, err := r.repositories.Mysql.GetUserByName(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+
+	getUserByNameResponse := &pb.GetUserByNameResponse{
+		Users: mysqlResponse,
+	}
+
+	return getUserByNameResponse, nil
 }
 
 var secretKey = []byte(config.JWT_SECRET)

@@ -87,6 +87,15 @@ func (r *userResource) GetUserProfile(ctx context.Context, in *pbUser.GetUserPro
 	return response, nil
 }
 
+func (r *userResource) GetUserByName(ctx context.Context, in *pbUser.GetUserByNameRequest) (*pbUser.GetUserByNameResponse, error) {
+	response, err := r.handler.User.GetUserByName(&ctx, in.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func NewUserServer(handler *handler.Handlers) pbUser.UserServiceServer {
 	return &userResource{
 		handler: handler,

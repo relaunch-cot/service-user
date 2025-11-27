@@ -7,6 +7,7 @@ import (
 
 	libModels "github.com/relaunch-cot/lib-relaunch-cot/models"
 	pbBaseModels "github.com/relaunch-cot/lib-relaunch-cot/proto/base_models"
+	pb "github.com/relaunch-cot/lib-relaunch-cot/proto/user"
 	"github.com/relaunch-cot/lib-relaunch-cot/repositories/mysql"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc/codes"
@@ -25,6 +26,7 @@ type IMySqlUser interface {
 	DeleteUser(ctx *context.Context, email, password string) error
 	SendPasswordRecoveryEmail(ctx *context.Context, email string) (*string, error)
 	GetUserProfile(ctx *context.Context, userId string) (*libModels.User, error)
+	GetUserByName(ctx *context.Context, userName string) ([]*pb.GetUserResponse, error)
 }
 
 func (r *mysqlResource) CreateUser(ctx *context.Context, userId, name, email, password, userType string, settings *pbBaseModels.UserSettings) error {
@@ -319,6 +321,37 @@ func (r *mysqlResource) GetUserProfile(ctx *context.Context, userId string) (*li
 	User.UserId = userId
 
 	return &User, nil
+}
+
+func (r *mysqlResource) GetUserByName(ctx *context.Context, userName string) ([]*pb.GetUserResponse, error) {
+	baseQuery := fmt.Sprintf(`
+SELECT 
+	u.userId, 
+	u.name
+FROM users u
+WHERE u.name LIKE '%%%s%%'`, userName)
+
+	rows, err := mysql.DB.QueryContext(*ctx, baseQuery)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "error with database. Details: "+err.Error())
+	}
+
+	defer rows.Close()
+
+	var users []*pb.GetUserResponse
+
+	for rows.Next() {
+		var user pb.GetUserResponse
+
+		err := rows.Scan(&user.UserId, &user.Name)
+		if err != nil {
+			return nil, status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
+		}
+
+		users = append(users, &user)
+	}
+
+	return users, nil
 }
 
 func NewMysqlRepository(client *mysql.Client) IMySqlUser {
