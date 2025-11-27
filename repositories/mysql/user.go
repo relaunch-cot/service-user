@@ -327,7 +327,8 @@ func (r *mysqlResource) GetUserByName(ctx *context.Context, userName string) ([]
 	baseQuery := fmt.Sprintf(`
 SELECT 
 	u.userId, 
-	u.name
+	u.name,
+	IFNULL(u.urlImageUser, "") AS urlImageUser
 FROM users u
 WHERE u.name LIKE '%%%s%%'`, userName)
 
@@ -343,7 +344,7 @@ WHERE u.name LIKE '%%%s%%'`, userName)
 	for rows.Next() {
 		var user pb.GetUserResponse
 
-		err := rows.Scan(&user.UserId, &user.Name)
+		err := rows.Scan(&user.UserId, &user.Name, &user.UrlImageUser)
 		if err != nil {
 			return nil, status.Error(codes.Internal, "error scanning mysql row: "+err.Error())
 		}
